@@ -156,24 +156,24 @@ hop/
 ## Phase 4: Multi-Exec (Non-Interactive)
 
 ### 4.1 Parallel Execution Engine
-- [ ] Implement parallel SSH execution (`internal/ssh/exec.go`)
-- [ ] Configurable parallelism (`--parallel=N`)
-- [ ] Collect stdout/stderr per host
-- [ ] Implement timeout handling (`--timeout`)
-- [ ] Implement fail-fast mode (`--fail-fast`)
+- [x] Implement parallel SSH execution (`internal/ssh/exec.go`)
+- [x] Configurable parallelism (`--parallel=N`)
+- [x] Collect stdout/stderr per host
+- [x] Implement timeout handling (`--timeout`)
+- [x] Implement fail-fast mode (`--fail-fast`)
 
 ### 4.2 Output Formatting
-- [ ] Implement grouped output mode (default)
-- [ ] Implement stream mode (`--stream`)
-- [ ] Add host prefixes in stream mode
+- [x] Implement grouped output mode (default)
+- [x] Implement stream mode (`--stream`)
+- [x] Add host prefixes in stream mode
 - [ ] Colorize output per host
-- [ ] Handle exit codes properly
+- [x] Handle exit codes properly
 
 ### 4.3 Exec Command
-- [ ] Implement `hop exec <group> "<command>"` command
-- [ ] Support pattern matching for groups (`"web*"`)
-- [ ] Support tag filtering
-- [ ] Write integration tests
+- [x] Implement `hop exec <group> "<command>"` command
+- [x] Support pattern matching for groups (`"web*"`)
+- [x] Support tag filtering
+- [x] Write unit tests for exec functionality
 
 ---
 
@@ -346,7 +346,7 @@ hop/
 | 1 | Project Setup & Core Infrastructure | Complete |
 | 2 | Core SSH Functionality | Complete |
 | 3 | Multi-Open (Batch Connect) | Complete |
-| 4 | Multi-Exec (Non-Interactive) | Not Started |
+| 4 | Multi-Exec (Non-Interactive) | Complete (except color output) |
 | 5 | TUI Dashboard | Not Started |
 | 6 | Config Command | Not Started |
 | 7 | Raycast Extension | Not Started |
