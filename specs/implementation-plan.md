@@ -63,93 +63,93 @@ hop/
 ## Phase 1: Project Setup & Core Infrastructure
 
 ### 1.1 Project Initialization
-- [ ] Create Go module (`go mod init github.com/<username>/hop`)
-- [ ] Set up project directory structure
-- [ ] Create Makefile with build targets
-- [ ] Add .gitignore
-- [ ] Create LICENSE (MIT)
-- [ ] Initialize git repository
+- [x] Create Go module (`go mod init github.com/<username>/hop`)
+- [x] Set up project directory structure
+- [x] Create Makefile with build targets
+- [x] Add .gitignore
+- [x] Create LICENSE (MIT)
+- [x] Initialize git repository
 
 ### 1.2 Configuration System
-- [ ] Define config structs (`Config`, `Connection`, `Defaults`, `Group`)
-- [ ] Implement YAML config loading (`internal/config/config.go`)
-- [ ] Implement config validation (`internal/config/validate.go`)
-- [ ] Support `~/.config/hop/config.yaml` default path
-- [ ] Support `HOP_CONFIG` environment variable override
-- [ ] Support `--config` flag override
+- [x] Define config structs (`Config`, `Connection`, `Defaults`, `Group`)
+- [x] Implement YAML config loading (`internal/config/config.go`)
+- [x] Implement config validation (`internal/config/validate.go`)
+- [x] Support `~/.config/hop/config.yaml` default path
+- [x] Support `HOP_CONFIG` environment variable override
+- [x] Support `--config` flag override
 - [ ] Add config file creation on first run (with example)
-- [ ] Write unit tests for config parsing
+- [x] Write unit tests for config parsing
 
 ### 1.3 CLI Framework Setup
-- [ ] Set up Cobra root command
-- [ ] Implement `hop version` command
-- [ ] Implement `hop help` command
-- [ ] Implement global flags (`--config`, `--verbose`, `--quiet`)
-- [ ] Set up command structure for subcommands
+- [x] Set up Cobra root command
+- [x] Implement `hop version` command
+- [x] Implement `hop help` command
+- [x] Implement global flags (`--config`, `--verbose`, `--quiet`)
+- [x] Set up command structure for subcommands
 
 ---
 
 ## Phase 2: Core SSH Functionality
 
 ### 2.1 Single Connection
-- [ ] Implement SSH command builder (`internal/ssh/connect.go`)
-- [ ] Support basic connection (host, user, port)
-- [ ] Support identity file (`-i` flag)
-- [ ] Support custom SSH options
-- [ ] Implement `hop connect <id>` command (exact match)
-- [ ] Implement `hop <query>` quick connect (fuzzy match)
-- [ ] Add `--dry-run` flag (print SSH command)
-- [ ] Add `-t` flag (force TTY)
-- [ ] Add `-- <cmd>` support (run command on remote)
-- [ ] Write unit tests for SSH command building
+- [x] Implement SSH command builder (`internal/ssh/connect.go`)
+- [x] Support basic connection (host, user, port)
+- [x] Support identity file (`-i` flag)
+- [x] Support custom SSH options
+- [x] Implement `hop connect <id>` command (exact match)
+- [x] Implement `hop <query>` quick connect (fuzzy match)
+- [x] Add `--dry-run` flag (print SSH command)
+- [x] Add `-t` flag (force TTY)
+- [x] Add `-- <cmd>` support (run command on remote)
+- [x] Write unit tests for SSH command building
 
 ### 2.2 Fuzzy Matching
-- [ ] Implement fuzzy matcher (`internal/fuzzy/matcher.go`)
-- [ ] Match against connection ID
-- [ ] Match against hostname
-- [ ] Match against tags
-- [ ] Implement scoring (shorter matches win)
-- [ ] Implement interactive picker when multiple matches
-- [ ] Write unit tests for fuzzy matching
+- [x] Implement fuzzy matcher (`internal/fuzzy/matcher.go`)
+- [x] Match against connection ID
+- [x] Match against hostname
+- [x] Match against tags
+- [x] Implement scoring (shorter matches win)
+- [x] Implement interactive picker when multiple matches
+- [x] Write unit tests for fuzzy matching
 
 ### 2.3 Connection Listing
-- [ ] Implement `hop list` command
-- [ ] Display grouped by project → env
-- [ ] Add `--json` flag for JSON output
-- [ ] Add `--flat` flag for ungrouped list
+- [x] Implement `hop list` command
+- [x] Display grouped by project → env
+- [x] Add `--json` flag for JSON output
+- [x] Add `--flat` flag for ungrouped list
 
 ---
 
 ## Phase 3: Multi-Open (Batch Connect)
 
 ### 3.1 Terminal Detection
-- [ ] Implement terminal detection (`internal/ssh/terminal.go`)
-- [ ] Detect macOS Terminal.app
-- [ ] Detect iTerm2
-- [ ] Detect Warp
-- [ ] Detect Alacritty
-- [ ] Detect Windows Terminal
-- [ ] Detect GNOME Terminal
-- [ ] Support `HOP_TERMINAL` override
+- [x] Implement terminal detection (`internal/ssh/terminal.go`)
+- [x] Detect macOS Terminal.app
+- [x] Detect iTerm2
+- [x] Detect Warp
+- [x] Detect Alacritty
+- [x] Detect Windows Terminal
+- [x] Detect GNOME Terminal
+- [x] Support `HOP_TERMINAL` override
 
 ### 3.2 Tab Opening
-- [ ] Implement new tab opening for each terminal
-- [ ] macOS: Terminal.app AppleScript
-- [ ] macOS: iTerm2 AppleScript
-- [ ] macOS: Warp (CLI integration)
-- [ ] Linux: GNOME Terminal (`--tab`)
-- [ ] Linux: Alacritty (new window fallback)
-- [ ] Windows: Windows Terminal (`wt -w 0 nt`)
-- [ ] Add configurable delay between tabs
+- [x] Implement new tab opening for each terminal
+- [x] macOS: Terminal.app AppleScript
+- [x] macOS: iTerm2 AppleScript
+- [x] macOS: Warp (CLI integration)
+- [x] Linux: GNOME Terminal (`--tab`)
+- [x] Linux: Alacritty (new window fallback)
+- [x] Windows: Windows Terminal (`wt -w 0 nt`)
+- [x] Add configurable delay between tabs
 
 ### 3.3 Open Command
-- [ ] Implement `hop open <group>` command
-- [ ] Implement `hop open <id1> <id2> ...` (multiple IDs)
-- [ ] Support fuzzy matching for groups and IDs
-- [ ] Implement `-- "<cmd>"` for initial command
-- [ ] Implement `--tag=<tag>` filter
-- [ ] Implement `--dry-run` flag
-- [ ] Write integration tests
+- [x] Implement `hop open <group>` command
+- [x] Implement `hop open <id1> <id2> ...` (multiple IDs)
+- [x] Support fuzzy matching for groups and IDs
+- [x] Implement `-- "<cmd>"` for initial command
+- [x] Implement `--tag=<tag>` filter
+- [x] Implement `--dry-run` flag
+- [x] Write integration tests
 
 ---
 
@@ -343,14 +343,14 @@ hop/
 
 | Phase | Description | Status |
 |-------|-------------|--------|
-| 1 | Project Setup & Core Infrastructure | Not Started |
-| 2 | Core SSH Functionality | Not Started |
-| 3 | Multi-Open (Batch Connect) | Not Started |
+| 1 | Project Setup & Core Infrastructure | Complete |
+| 2 | Core SSH Functionality | Complete |
+| 3 | Multi-Open (Batch Connect) | Complete |
 | 4 | Multi-Exec (Non-Interactive) | Not Started |
 | 5 | TUI Dashboard | Not Started |
 | 6 | Config Command | Not Started |
 | 7 | Raycast Extension | Not Started |
-| 8 | Build & Release | Not Started |
+| 8 | Build & Release | Partial (Makefile done) |
 | 9 | Documentation & Polish | Not Started |
 
 ---
