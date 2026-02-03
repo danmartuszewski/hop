@@ -6,8 +6,9 @@ import (
 	"os"
 	"sort"
 	"strings"
+	"text/tabwriter"
 
-	"github.com/hop-cli/hop/internal/config"
+	"github.com/danmartuszewski/hop/internal/config"
 	"github.com/spf13/cobra"
 )
 
@@ -54,56 +55,67 @@ func printJSON(connections []config.Connection) error {
 }
 
 func printFlat(connections []config.Connection) error {
+	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
+	fmt.Fprintf(w, "ID\tHOST\tPORT\tTAGS\n")
 	for _, conn := range connections {
-		user := conn.EffectiveUser()
-		if user != "" {
-			fmt.Printf("%s\t%s@%s\n", conn.ID, user, conn.Host)
-		} else {
-			fmt.Printf("%s\t%s\n", conn.ID, conn.Host)
+		host := conn.Host
+		if user := conn.EffectiveUser(); user != "" {
+			host = user + "@" + conn.Host
 		}
+		tags := strings.Join(conn.Tags, ", ")
+		fmt.Fprintf(w, "%s\t%s\t%d\t%s\n", conn.ID, host, conn.Port, tags)
 	}
-	return nil
+	return w.Flush()
 }
 
 func printGrouped(connections []config.Connection) error {
 	groups := groupConnections(connections)
 	projectOrder := sortedKeys(groups)
 
-	for _, project := range projectOrder {
+	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
+
+	for i, project := range projectOrder {
 		envs := groups[project]
 		envOrder := sortedKeys(envs)
 
 		if project == "" {
+			fmt.Fprintf(w, "ID\tHOST\tPORT\tTAGS\n")
 			for _, env := range envOrder {
 				for _, conn := range envs[env] {
-					printConnection(conn, "")
+					printConnection(w, conn)
 				}
 			}
 			continue
 		}
 
-		fmt.Printf("%s\n", project)
+		if i > 0 {
+			fmt.Fprintln(w)
+		}
+		fmt.Fprintf(w, "%s\t\t\t\n", project)
+		fmt.Fprintf(w, "ID\tHOST\tPORT\tTAGS\n")
 		for _, env := range envOrder {
 			conns := envs[env]
 			if env != "" {
-				fmt.Printf("  %s\n", env)
-				for _, conn := range conns {
-					printConnection(conn, "    ")
+				fmt.Fprintf(w, "  [%s]\t\t\t\n", env)
+			}
+			for _, conn := range conns {
+				prefix := "  "
+				if env != "" {
+					prefix = "    "
 				}
-			} else {
-				for _, conn := range conns {
-					printConnection(conn, "  ")
-				}
+				printConnectionWithPrefix(w, conn, prefix)
 			}
 		}
-		fmt.Println()
 	}
 
-	return nil
+	return w.Flush()
 }
 
-func printConnection(conn config.Connection, indent string) {
-	user := conn.EffectiveUser()
+func printConnection(w *tabwriter.Writer, conn config.Connection) {
+	printConnectionWithPrefix(w, conn, "")
+}
+
+func printConnectionWithPrefix(w *tabwriter.Writer, conn config.Connection, prefix string) {
 	name := conn.ID
 	if conn.Project != "" {
 		name = strings.TrimPrefix(name, conn.Project+"-")
@@ -112,11 +124,12 @@ func printConnection(conn config.Connection, indent string) {
 		name = strings.TrimPrefix(name, conn.Env+"-")
 	}
 
-	if user != "" {
-		fmt.Printf("%s%s\t%s\t%s@%s\n", indent, name, conn.ID, user, conn.Host)
-	} else {
-		fmt.Printf("%s%s\t%s\t%s\n", indent, name, conn.ID, conn.Host)
+	host := conn.Host
+	if user := conn.EffectiveUser(); user != "" {
+		host = user + "@" + conn.Host
 	}
+	tags := strings.Join(conn.Tags, ", ")
+	fmt.Fprintf(w, "%s%s\t%s\t%d\t%s\n", prefix, name, host, conn.Port, tags)
 }
 
 func groupConnections(connections []config.Connection) map[string]map[string][]config.Connection {

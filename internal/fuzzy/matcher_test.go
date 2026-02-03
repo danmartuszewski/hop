@@ -3,7 +3,7 @@ package fuzzy
 import (
 	"testing"
 
-	"github.com/hop-cli/hop/internal/config"
+	"github.com/danmartuszewski/hop/internal/config"
 )
 
 func TestFindMatches(t *testing.T) {

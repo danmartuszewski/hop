@@ -3,8 +3,8 @@ package picker
 import (
 	"fmt"
 
-	"github.com/hop-cli/hop/internal/config"
-	"github.com/hop-cli/hop/internal/fuzzy"
+	"github.com/danmartuszewski/hop/internal/config"
+	"github.com/danmartuszewski/hop/internal/fuzzy"
 	"github.com/manifoldco/promptui"
 )
 

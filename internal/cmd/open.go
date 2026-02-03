@@ -6,9 +6,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hop-cli/hop/internal/config"
-	"github.com/hop-cli/hop/internal/fuzzy"
-	"github.com/hop-cli/hop/internal/ssh"
+	"github.com/danmartuszewski/hop/internal/config"
+	"github.com/danmartuszewski/hop/internal/fuzzy"
+	"github.com/danmartuszewski/hop/internal/ssh"
 	"github.com/spf13/cobra"
 )
 
@@ -20,16 +20,23 @@ var (
 )
 
 var openCmd = &cobra.Command{
-	Use:   "open <group|id...> [-- \"<cmd>\"]",
+	Use:   "open <target...> [-- \"<cmd>\"]",
 	Short: "Open multiple terminal tabs",
 	Long: `Open multiple terminal tabs, each connected to a different server.
 
+Target is resolved in this order:
+  1. Named group from config (e.g. "production")
+  2. Project-env pattern (e.g. "myapp-prod" matches project=myapp, env=prod)
+  3. Fuzzy match on connection IDs
+  You can also pass multiple connection IDs directly.
+
 Examples:
-  hop open myapp-prod                    # Open all servers in group
-  hop open web1 db1 api1                 # Open specific servers
+  hop open production                    # Named group from config
+  hop open myapp-prod                    # Project-env pattern
+  hop open web1 db1 api1                 # Specific connection IDs
   hop open myapp-prod -- "htop"          # Open with initial command
   hop open --tag=web                     # Open all servers tagged 'web'
-  hop open prod --tag=database -- "psql" # Combine group and tag filter`,
+  hop open prod --tag=database -- "psql" # Combine target and tag filter`,
 	Args: func(cmd *cobra.Command, args []string) error {
 		// Allow zero args if --tag is provided
 		if openTag != "" {

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/hop-cli/hop/internal/cmd"
+	"github.com/danmartuszewski/hop/internal/cmd"
 )
 
 func main() {

@@ -3,13 +3,11 @@ package cmd
 import (
 	"fmt"
 	"os"
-	"regexp"
 	"strings"
 	"time"
 
-	"github.com/hop-cli/hop/internal/config"
-	"github.com/hop-cli/hop/internal/fuzzy"
-	"github.com/hop-cli/hop/internal/ssh"
+	"github.com/danmartuszewski/hop/internal/fuzzy"
+	"github.com/danmartuszewski/hop/internal/ssh"
 	"github.com/spf13/cobra"
 )
 
@@ -23,15 +21,21 @@ var (
 )
 
 var execCmd = &cobra.Command{
-	Use:   "exec <group|pattern> <command>",
+	Use:   "exec <target> <command>",
 	Short: "Execute a command on multiple servers",
 	Long: `Execute a command on multiple servers in parallel.
 
+Target is resolved in this order:
+  1. Named group from config (e.g. "production")
+  2. Project-env pattern (e.g. "myapp-prod" matches project=myapp, env=prod)
+  3. Glob pattern on connection IDs (e.g. "web*")
+  4. Fuzzy match on a single connection ID
+
 Examples:
-  hop exec myapp-prod "uptime"              # Execute on all servers in group
-  hop exec myapp-prod "df -h" --parallel=2  # Limit parallelism
+  hop exec production "uptime"              # Named group from config
+  hop exec myapp-prod "df -h" --parallel=2  # Project-env pattern
   hop exec prod "hostname" --stream         # Stream output in real-time
-  hop exec "web*" "systemctl restart nginx" # Pattern match
+  hop exec "web*" "systemctl restart nginx" # Glob pattern
   hop exec --tag=database "psql -c 'SELECT 1'" # Filter by tag`,
 	Args: cobra.MinimumNArgs(2),
 	RunE: runExec,
@@ -58,10 +62,11 @@ func runExec(cmd *cobra.Command, args []string) error {
 	}
 
 	// Resolve connections
-	connections, err := resolveExecTargets(groupOrPattern, cfg)
+	result, err := resolveTarget(groupOrPattern, cfg)
 	if err != nil {
 		return err
 	}
+	connections := result.Connections
 
 	// Filter by tag if specified
 	if execTag != "" {
@@ -134,58 +139,4 @@ func runExec(cmd *cobra.Command, args []string) error {
 	}
 
 	return nil
-}
-
-// resolveExecTargets resolves a group name, pattern, or connection ID to a list of connections.
-func resolveExecTargets(groupOrPattern string, cfg *config.Config) ([]config.Connection, error) {
-	// First, try as a defined group
-	if cfg.Groups != nil {
-		if members, ok := cfg.Groups[groupOrPattern]; ok {
-			var connections []config.Connection
-			for _, id := range members {
-				if conn := fuzzy.FindByID(id, cfg.Connections); conn != nil {
-					connections = append(connections, *conn)
-				}
-			}
-			return connections, nil
-		}
-	}
-
-	// Try as project-env pattern (e.g., "myapp-prod")
-	matches := fuzzy.MatchGroup(groupOrPattern, cfg)
-	if len(matches) > 0 {
-		return matches, nil
-	}
-
-	// Try as glob pattern (e.g., "web*")
-	if strings.Contains(groupOrPattern, "*") {
-		pattern := globToRegex(groupOrPattern)
-		re, err := regexp.Compile(pattern)
-		if err != nil {
-			return nil, fmt.Errorf("invalid pattern '%s': %w", groupOrPattern, err)
-		}
-
-		var connections []config.Connection
-		for _, conn := range cfg.Connections {
-			if re.MatchString(conn.ID) {
-				connections = append(connections, conn)
-			}
-		}
-		return connections, nil
-	}
-
-	// Try as a single connection ID (fuzzy match)
-	if conn := fuzzy.FindBestMatch(groupOrPattern, cfg.Connections); conn != nil {
-		return []config.Connection{*conn}, nil
-	}
-
-	return nil, nil
-}
-
-// globToRegex converts a simple glob pattern to a regex pattern.
-func globToRegex(glob string) string {
-	pattern := regexp.QuoteMeta(glob)
-	pattern = strings.ReplaceAll(pattern, "\\*", ".*")
-	pattern = strings.ReplaceAll(pattern, "\\?", ".")
-	return "^" + pattern + "$"
 }

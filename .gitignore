@@ -1,11 +1,7 @@
-.claude/*.local
-PROMPT.md
-ralph.sh
-
-# Go build artifacts
+# Build artifacts
+hop
 bin/
 *.exe
-*.exe~
 *.dll
 *.so
 *.dylib
@@ -15,7 +11,7 @@ bin/
 coverage.out
 coverage.html
 
-# Dependency directories
+# Dependencies
 vendor/
 
 # IDE
@@ -28,3 +24,6 @@ vendor/
 # OS
 .DS_Store
 Thumbs.db
+
+# Claude Code
+.claude/*.local

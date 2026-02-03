@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/hop-cli/hop/internal/config"
+	"github.com/danmartuszewski/hop/internal/config"
 )
 
 // ExecOptions configures the behavior of parallel execution.
@@ -208,9 +208,9 @@ func executeOnHost(ctx context.Context, conn *config.Connection, opts *ExecOptio
 
 // prefixWriter adds a prefix to each line written.
 type prefixWriter struct {
-	prefix     string
-	writer     io.Writer
-	mu         sync.Mutex
+	prefix      string
+	writer      io.Writer
+	mu          sync.Mutex
 	atLineStart bool
 }
 

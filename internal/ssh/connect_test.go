@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/hop-cli/hop/internal/config"
+	"github.com/danmartuszewski/hop/internal/config"
 )
 
 func TestBuildCommand(t *testing.T) {

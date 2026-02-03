@@ -1,0 +1,75 @@
+version: 1
+
+defaults:
+  user: deploy
+  port: 22
+
+connections:
+  # E-commerce platform
+  - id: shop-prod-web1
+    host: web1.shop.example.com
+    project: shop
+    env: prod
+    tags: [web, nginx]
+
+  - id: shop-prod-web2
+    host: web2.shop.example.com
+    project: shop
+    env: prod
+    tags: [web, nginx]
+
+  - id: shop-prod-api
+    host: api.shop.example.com
+    project: shop
+    env: prod
+    tags: [api, go]
+
+  - id: shop-prod-db
+    host: db.shop.example.com
+    user: dbadmin
+    project: shop
+    env: prod
+    tags: [database, postgres]
+
+  - id: shop-staging
+    host: staging.shop.example.com
+    project: shop
+    env: staging
+    tags: [web, api]
+
+  # Internal tools
+  - id: tools-gitlab
+    host: gitlab.internal.example.com
+    user: admin
+    project: tools
+    env: prod
+    tags: [git, ci]
+
+  - id: tools-monitoring
+    host: grafana.internal.example.com
+    project: tools
+    env: prod
+    tags: [monitoring]
+
+  - id: tools-logs
+    host: elk.internal.example.com
+    project: tools
+    env: prod
+    tags: [logging, elk]
+
+  # Personal servers
+  - id: homelab
+    host: 192.168.1.100
+    user: dan
+    tags: [personal]
+
+  - id: vps-nyc
+    host: nyc1.myserver.io
+    user: root
+    port: 2222
+    tags: [personal, vps]
+
+groups:
+  production: [shop-prod-web1, shop-prod-web2, shop-prod-api, shop-prod-db]
+  web-servers: [shop-prod-web1, shop-prod-web2, shop-staging]
+  databases: [shop-prod-db]

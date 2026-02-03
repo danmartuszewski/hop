@@ -4,7 +4,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/hop-cli/hop/internal/config"
+	"github.com/danmartuszewski/hop/internal/config"
 )
 
 type Match struct {

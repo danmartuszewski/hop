@@ -6,14 +6,14 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/hop-cli/hop/internal/config"
+	"github.com/danmartuszewski/hop/internal/config"
 )
 
 type ConnectOptions struct {
-	DryRun     bool
-	ForceTTY   bool
-	Command    string
-	ExtraArgs  []string
+	DryRun    bool
+	ForceTTY  bool
+	Command   string
+	ExtraArgs []string
 }
 
 func BuildCommand(conn *config.Connection, opts *ConnectOptions) []string {
