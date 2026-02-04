@@ -82,23 +82,7 @@ var (
 			Italic(true).
 			Padding(2, 4)
 
-	// Details panel
-	panelStyle = lipgloss.NewStyle().
-			BorderStyle(lipgloss.RoundedBorder()).
-			BorderForeground(secondaryColor).
-			Padding(1, 2)
-
-	panelTitleStyle = lipgloss.NewStyle().
-			Bold(true).
-			Foreground(primaryColor).
-			MarginBottom(1)
-
-	panelLabelStyle = lipgloss.NewStyle().
-			Foreground(secondaryColor)
-
-	panelValueStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("255"))
-
+	// Tag style (used in filter bar and tag picker)
 	panelTagStyle = lipgloss.NewStyle().
 			Foreground(accentColor).
 			Background(lipgloss.Color("236")).
