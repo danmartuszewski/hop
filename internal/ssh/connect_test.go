@@ -116,6 +116,47 @@ func TestBuildCommand(t *testing.T) {
 			},
 			want: []string{"-t", "-p", "2222", "-i", "/keys/server.pem", "-o", "ServerAliveInterval=60", "deploy@10.0.1.50", "htop"},
 		},
+		{
+			name: "with proxy jump",
+			conn: &config.Connection{
+				Host:      "internal.example.com",
+				User:      "admin",
+				ProxyJump: "bastion.example.com",
+			},
+			opts: nil,
+			want: []string{"-J", "bastion.example.com", "admin@internal.example.com"},
+		},
+		{
+			name: "with proxy jump and user",
+			conn: &config.Connection{
+				Host:      "internal.example.com",
+				User:      "admin",
+				ProxyJump: "jumpuser@bastion.example.com:2222",
+			},
+			opts: nil,
+			want: []string{"-J", "jumpuser@bastion.example.com:2222", "admin@internal.example.com"},
+		},
+		{
+			name: "with forward agent",
+			conn: &config.Connection{
+				Host:         "git.example.com",
+				User:         "deploy",
+				ForwardAgent: true,
+			},
+			opts: nil,
+			want: []string{"-A", "deploy@git.example.com"},
+		},
+		{
+			name: "with proxy jump and forward agent",
+			conn: &config.Connection{
+				Host:         "internal.example.com",
+				User:         "admin",
+				ProxyJump:    "bastion",
+				ForwardAgent: true,
+			},
+			opts: nil,
+			want: []string{"-J", "bastion", "-A", "admin@internal.example.com"},
+		},
 	}
 
 	for _, tt := range tests {

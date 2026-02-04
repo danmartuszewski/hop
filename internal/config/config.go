@@ -28,6 +28,8 @@ type Connection struct {
 	Project      string            `yaml:"project"`
 	Env          string            `yaml:"env"`
 	IdentityFile string            `yaml:"identity_file"`
+	ProxyJump    string            `yaml:"proxy_jump,omitempty"`
+	ForwardAgent bool              `yaml:"forward_agent,omitempty"`
 	Tags         []string          `yaml:"tags"`
 	Options      map[string]string `yaml:"options"`
 }

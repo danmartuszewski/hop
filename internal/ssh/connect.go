@@ -32,6 +32,14 @@ func BuildCommand(conn *config.Connection, opts *ConnectOptions) []string {
 		args = append(args, "-i", identityFile)
 	}
 
+	if conn.ProxyJump != "" {
+		args = append(args, "-J", conn.ProxyJump)
+	}
+
+	if conn.ForwardAgent {
+		args = append(args, "-A")
+	}
+
 	for key, value := range conn.Options {
 		args = append(args, "-o", fmt.Sprintf("%s=%s", key, value))
 	}

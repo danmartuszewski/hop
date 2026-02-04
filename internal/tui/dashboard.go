@@ -21,6 +21,7 @@ const (
 	viewConfirmDelete
 	viewPaste
 	viewTagPicker
+	viewImport
 )
 
 type listItem struct {
@@ -58,6 +59,8 @@ type Model struct {
 	// Recent connections
 	history      *config.History
 	sortByRecent bool
+	// Import modal
+	importModel ImportModel
 }
 
 func NewModel(cfg *config.Config, version string) Model {
@@ -333,6 +336,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m.updatePaste(msg)
 	case viewTagPicker:
 		return m.updateTagPicker(msg)
+	case viewImport:
+		return m.updateImport(msg)
 	default:
 		return m.updateList(msg)
 	}
@@ -463,6 +468,15 @@ func (m Model) updateList(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.statusMsg = "Sorted by name"
 			}
 			m.applyFilter(m.filter.Value())
+			return m, nil
+		case "i":
+			// Build set of existing IDs
+			existingIDs := make(map[string]bool)
+			for _, conn := range m.config.Connections {
+				existingIDs[conn.ID] = true
+			}
+			m.importModel = NewImportModel(existingIDs, "", m.configPath, m.width, m.height)
+			m.view = viewImport
 			return m, nil
 		}
 	}
@@ -687,6 +701,44 @@ func (m Model) updateTagPicker(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
+func (m Model) updateImport(msg tea.Msg) (tea.Model, tea.Cmd) {
+	var cmd tea.Cmd
+	m.importModel, cmd = m.importModel.Update(msg)
+
+	if m.importModel.Cancelled() {
+		m.view = viewList
+		return m, nil
+	}
+
+	if m.importModel.Confirmed() {
+		selected := m.importModel.SelectedConnections()
+		if len(selected) == 0 {
+			m.statusMsg = "No connections selected"
+			m.view = viewList
+			return m, nil
+		}
+
+		// Add selected connections
+		for _, conn := range selected {
+			m.config.AddConnection(conn)
+		}
+
+		// Save config
+		if err := m.config.Save(m.configPath); err != nil {
+			m.statusMsg = "Error saving: " + err.Error()
+		} else {
+			m.statusMsg = fmt.Sprintf("Imported %d connection(s)", len(selected))
+		}
+
+		m.refresh()
+		m.collectTags()
+		m.view = viewList
+		return m, nil
+	}
+
+	return m, cmd
+}
+
 func (m Model) View() string {
 	if m.quitting {
 		return ""
@@ -703,6 +755,8 @@ func (m Model) View() string {
 		return m.renderPaste()
 	case viewTagPicker:
 		return m.renderTagPicker()
+	case viewImport:
+		return m.importModel.View()
 	default:
 		return m.renderList()
 	}
@@ -921,6 +975,7 @@ func (m Model) renderFooter() string {
 	}
 	keys = append(keys, helpKeyStyle.Render("r")+" "+helpDescStyle.Render(recentLabel))
 	keys = append(keys, helpKeyStyle.Render("a")+" "+helpDescStyle.Render("add"))
+	keys = append(keys, helpKeyStyle.Render("i")+" "+helpDescStyle.Render("import"))
 	keys = append(keys, helpKeyStyle.Render("e")+" "+helpDescStyle.Render("edit"))
 	keys = append(keys, helpKeyStyle.Render("d")+" "+helpDescStyle.Render("del"))
 	keys = append(keys, helpKeyStyle.Render("enter")+" "+helpDescStyle.Render("connect"))

@@ -15,8 +15,10 @@ hop list          # list all connections
 - **Fuzzy matching** - Connect with minimal keystrokes
 - **TUI dashboard** - Browse, add, edit, delete connections interactively
 - **Quick paste** - Parse `user@host:port` strings instantly
+- **SSH config import** - Import connections from `~/.ssh/config`
 - **Groups** - Organize connections by project and environment
 - **Multi-exec** - Run commands across multiple servers
+- **Jump hosts** - ProxyJump support for bastion servers
 - **Mouse support** - Scroll and click in the dashboard
 - **Zero dependencies** - Single binary, no runtime requirements
 
@@ -81,6 +83,14 @@ connections:
     project: myapp
     env: staging
 
+  - id: private-server
+    host: 10.0.1.50
+    user: admin
+    proxy_jump: bastion          # Connect via jump host
+    forward_agent: true          # Forward SSH agent
+
+> **Security note:** `forward_agent: true` exposes your SSH keys to anyone with root access on the remote server. Only enable this for servers you fully trust. Consider using `proxy_jump` instead when you just need to reach internal hosts through a bastion.
+
 groups:
   production: [prod-web, prod-db]
   web-servers: [prod-web, staging]
@@ -103,6 +113,7 @@ Launch with `hop` or `hop dashboard`.
 | `r` | Toggle sort by recent |
 | `Enter` | Connect to selected |
 | `a` | Add new connection |
+| `i` | Import from SSH config |
 | `p` | Paste SSH string (quick add) |
 | `e` | Edit selected |
 | `c` | Duplicate selected |
@@ -124,6 +135,31 @@ ssh://user@host:port
 
 The connection form opens with fields pre-filled.
 
+### Importing from SSH Config
+
+Import existing connections from your `~/.ssh/config` file:
+
+**From the dashboard:** Press `i` to open the import modal, select which connections to import, and press Enter.
+
+**From the CLI:**
+```bash
+hop import                   # Import from ~/.ssh/config
+hop import --dry-run         # Preview what would be imported
+hop import --file ~/.ssh/config.d/work  # Import from custom path
+```
+
+**What gets imported:**
+- Host alias becomes the connection ID
+- HostName, User, Port, IdentityFile
+- ProxyJump for jump host connections
+- ForwardAgent setting
+
+**What gets skipped:**
+- Wildcard patterns (`Host *`, `Host *.example.com`)
+- Entries without a HostName (alias is used as hostname)
+
+**Conflict handling:** If a connection ID already exists, the imported connection is renamed with `-imported` suffix (e.g., `myserver` → `myserver-imported`).
+
 ## CLI Commands
 
 ```bash
@@ -133,6 +169,9 @@ hop connect <id>             # Connect by exact ID
 hop list                     # List all connections
 hop list --json              # List as JSON
 hop list --flat              # Flat list without grouping
+hop import                   # Import from ~/.ssh/config
+hop import --file <path>     # Import from custom path
+hop import --dry-run         # Preview without importing
 hop open <target...>         # Open multiple terminal tabs
 hop exec <target> "cmd"      # Execute command on multiple servers
 hop resolve <target>         # Test which connections a target matches
@@ -239,6 +278,7 @@ hop/
 │   ├── fuzzy/         # Fuzzy matching
 │   ├── picker/        # Connection picker (promptui)
 │   ├── ssh/           # SSH connection handling
+│   ├── sshconfig/     # SSH config parsing
 │   └── tui/           # TUI dashboard (bubbletea)
 ├── Dockerfile
 ├── Makefile

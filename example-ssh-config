@@ -1,0 +1,61 @@
+# Example SSH config for testing hop import
+# Usage: hop import --file example-ssh-config
+
+# Basic server
+Host webserver
+    HostName web.example.com
+    User deploy
+    Port 22
+
+# Server with custom SSH port and identity file
+Host database
+    HostName db.example.com
+    User dbadmin
+    Port 2222
+    IdentityFile ~/.ssh/db_key
+
+# Bastion / Jump host
+Host bastion
+    HostName bastion.example.com
+    User jump
+    IdentityFile ~/.ssh/bastion_key
+
+# Internal server accessed via jump host
+Host internal-app
+    HostName 10.0.1.50
+    User admin
+    ProxyJump bastion
+
+# Server with agent forwarding (for git operations)
+Host git-server
+    HostName git.example.com
+    User git
+    ForwardAgent yes
+
+# Combined: jump host + agent forwarding
+Host private-dev
+    HostName 10.0.1.100
+    User developer
+    ProxyJump bastion
+    ForwardAgent yes
+    IdentityFile ~/.ssh/dev_key
+
+# Server using hostname as alias (no HostName directive)
+Host myserver.example.com
+    User admin
+    Port 2222
+
+# Multi-hop jump (chained bastions)
+Host deep-internal
+    HostName 192.168.1.50
+    User root
+    ProxyJump bastion,internal-app
+
+# Wildcard entries (should be skipped by import)
+Host *
+    ServerAliveInterval 60
+    ServerAliveCountMax 3
+
+Host *.internal.example.com
+    User internal-admin
+    ProxyJump bastion

@@ -30,6 +30,11 @@ RUN mkdir -p /home/hopuser/.config/hop
 COPY example-config.yaml /home/hopuser/.config/hop/config.yaml
 RUN chown -R hopuser:hopuser /home/hopuser/.config
 
+# Add example SSH config for testing import
+RUN mkdir -p /home/hopuser/.ssh
+COPY example-ssh-config /home/hopuser/.ssh/config
+RUN chown -R hopuser:hopuser /home/hopuser/.ssh && chmod 700 /home/hopuser/.ssh && chmod 600 /home/hopuser/.ssh/config
+
 USER hopuser
 WORKDIR /home/hopuser
 
