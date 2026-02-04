@@ -188,6 +188,76 @@ func TestFilterMode(t *testing.T) {
 	}
 }
 
+func TestFuzzyFilterScoring(t *testing.T) {
+	// Create config with connections that should have different fuzzy scores
+	cfg := &config.Config{
+		Version: 1,
+		Connections: []config.Connection{
+			{ID: "web-prod", Host: "web.prod.example.com", Project: "app", Env: "prod"},
+			{ID: "prod-server", Host: "prod.example.com", Project: "app", Env: "prod"},
+			{ID: "prod", Host: "prod-main.example.com", Project: "app", Env: "production"},
+			{ID: "staging", Host: "staging.example.com", Project: "app", Env: "staging"},
+		},
+		Groups: map[string][]string{},
+	}
+	m := NewModel(cfg, "1.0.0")
+
+	// Apply filter "prod"
+	m.applyFilter("prod")
+
+	// Should find 3 results (not staging)
+	if len(m.filtered) != 3 {
+		t.Errorf("expected 3 filtered results, got %d", len(m.filtered))
+	}
+
+	// First result should be "prod" (exact match, score 1000)
+	if len(m.filtered) > 0 {
+		idx := m.filtered[0]
+		conn := m.items[idx].connection
+		if conn.ID != "prod" {
+			t.Errorf("expected first result to be 'prod' (exact match), got %q", conn.ID)
+		}
+	}
+
+	// Second result should be "prod-server" (prefix match, higher score than substring)
+	if len(m.filtered) > 1 {
+		idx := m.filtered[1]
+		conn := m.items[idx].connection
+		if conn.ID != "prod-server" {
+			t.Errorf("expected second result to be 'prod-server' (prefix match), got %q", conn.ID)
+		}
+	}
+}
+
+func TestFuzzyFilterSubsequence(t *testing.T) {
+	// Test fuzzy subsequence matching
+	cfg := &config.Config{
+		Version: 1,
+		Connections: []config.Connection{
+			{ID: "myapp-prod-web", Host: "web.prod.example.com"},
+			{ID: "other-server", Host: "other.example.com"},
+		},
+		Groups: map[string][]string{},
+	}
+	m := NewModel(cfg, "1.0.0")
+
+	// Apply fuzzy filter "mpw" (m-yapp-p-rod-w-eb)
+	m.applyFilter("mpw")
+
+	// Should find 1 result via fuzzy subsequence matching
+	if len(m.filtered) != 1 {
+		t.Errorf("expected 1 filtered result from fuzzy match, got %d", len(m.filtered))
+	}
+
+	if len(m.filtered) > 0 {
+		idx := m.filtered[0]
+		conn := m.items[idx].connection
+		if conn.ID != "myapp-prod-web" {
+			t.Errorf("expected fuzzy match 'myapp-prod-web', got %q", conn.ID)
+		}
+	}
+}
+
 func TestSelectConnection(t *testing.T) {
 	cfg := testConfig()
 	m := NewModel(cfg, "1.0.0")

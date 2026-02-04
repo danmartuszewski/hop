@@ -160,16 +160,22 @@ func (m *Model) applyFilter(query string) {
 		return
 	}
 
-	m.filtered = []int{}
+	// Use sophisticated fuzzy matching with scoring for consistency with CLI
+	matches := fuzzy.FindMatches(query, m.config.Connections)
+
+	// Build a map of connection ID to item index for efficient lookup
+	idToIndex := make(map[string]int)
 	for i, item := range m.items {
-		if item.connection == nil {
-			continue
+		if item.connection != nil {
+			idToIndex[item.connection.ID] = i
 		}
-		if fuzzy.ContainsIgnoreCase(item.connection.ID, query) ||
-			fuzzy.ContainsIgnoreCase(item.connection.Host, query) ||
-			fuzzy.ContainsIgnoreCase(item.connection.Project, query) ||
-			fuzzy.ContainsIgnoreCase(item.connection.Env, query) {
-			m.filtered = append(m.filtered, i)
+	}
+
+	// Convert matches to filtered indices, preserving score-based order
+	m.filtered = []int{}
+	for _, match := range matches {
+		if idx, ok := idToIndex[match.Connection.ID]; ok {
+			m.filtered = append(m.filtered, idx)
 		}
 	}
 	m.cursor = 0
