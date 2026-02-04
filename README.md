@@ -17,6 +17,7 @@ hop list          # list all connections
 - **Quick paste** - Parse `user@host:port` strings instantly
 - **Groups** - Organize connections by project and environment
 - **Multi-exec** - Run commands across multiple servers
+- **Mouse support** - Scroll and click in the dashboard
 - **Zero dependencies** - Single binary, no runtime requirements
 
 ## Installation
@@ -98,6 +99,8 @@ Launch with `hop` or `hop dashboard`.
 | `g` | Go to top |
 | `G` | Go to bottom |
 | `/` | Filter connections |
+| `t` | Filter by tags |
+| `r` | Toggle sort by recent |
 | `Enter` | Connect to selected |
 | `a` | Add new connection |
 | `p` | Paste SSH string (quick add) |
@@ -175,6 +178,22 @@ hop open myapp-prod -- "htop"          # with initial command
 
 # List connections
 hop list --flat
+```
+
+## Shell Completions
+
+```bash
+# Bash (Linux)
+hop completion bash | sudo tee /etc/bash_completion.d/hop > /dev/null
+
+# Bash (macOS with Homebrew)
+hop completion bash > $(brew --prefix)/etc/bash_completion.d/hop
+
+# Zsh (add to ~/.zshrc)
+source <(hop completion zsh)
+
+# Fish
+hop completion fish > ~/.config/fish/completions/hop.fish
 ```
 
 ## Flags
