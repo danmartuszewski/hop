@@ -1,8 +1,10 @@
 package ssh
 
 import (
+	"fmt"
 	"os"
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/danmartuszewski/hop/internal/config"
@@ -179,5 +181,100 @@ func TestExpandPath(t *testing.T) {
 				t.Errorf("expandPath(%q) = %q, want %q", tt.input, got, tt.want)
 			}
 		})
+	}
+}
+
+func TestWrapSSHError(t *testing.T) {
+	tests := []struct {
+		name       string
+		err        error
+		conn       *config.Connection
+		wantNil    bool
+		wantSubstr string
+	}{
+		{
+			name:       "permission denied",
+			err:        fmt.Errorf("ssh: Permission denied (publickey)"),
+			conn:       &config.Connection{Host: "server.example.com"},
+			wantSubstr: "ssh-add",
+		},
+		{
+			name:       "connection refused",
+			err:        fmt.Errorf("ssh: connect to host server.example.com port 22: Connection refused"),
+			conn:       &config.Connection{Host: "server.example.com", Port: 22},
+			wantSubstr: "SSH service may not be running",
+		},
+		{
+			name:       "host key verification failed",
+			err:        fmt.Errorf("Host key verification failed"),
+			conn:       &config.Connection{Host: "server.example.com"},
+			wantSubstr: "ssh-keygen -R server.example.com",
+		},
+		{
+			name:       "connection timed out",
+			err:        fmt.Errorf("Connection timed out"),
+			conn:       &config.Connection{Host: "server.example.com"},
+			wantSubstr: "firewall",
+		},
+		{
+			name:       "no route to host",
+			err:        fmt.Errorf("No route to host"),
+			conn:       &config.Connection{Host: "server.example.com"},
+			wantSubstr: "network connectivity",
+		},
+		{
+			name:       "could not resolve hostname",
+			err:        fmt.Errorf("Could not resolve hostname"),
+			conn:       &config.Connection{Host: "server.example.com"},
+			wantSubstr: "DNS",
+		},
+		{
+			name:       "too many auth failures",
+			err:        fmt.Errorf("Too many authentication failures"),
+			conn:       &config.Connection{Host: "server.example.com"},
+			wantSubstr: "ssh-add -D",
+		},
+		{
+			name:    "unknown error returns original",
+			err:     fmt.Errorf("some unknown error"),
+			conn:    &config.Connection{Host: "server.example.com"},
+			wantNil: true, // Should return original error
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := wrapSSHError(tt.err, tt.conn)
+			if tt.wantNil {
+				// Should return original error unchanged
+				if got != tt.err {
+					t.Errorf("expected original error, got %v", got)
+				}
+				return
+			}
+
+			sshErr, ok := got.(*SSHError)
+			if !ok {
+				t.Errorf("expected *SSHError, got %T", got)
+				return
+			}
+
+			errStr := sshErr.Error()
+			if tt.wantSubstr != "" && !strings.Contains(errStr, tt.wantSubstr) {
+				t.Errorf("error message %q does not contain %q", errStr, tt.wantSubstr)
+			}
+		})
+	}
+}
+
+func TestSSHErrorUnwrap(t *testing.T) {
+	originalErr := fmt.Errorf("original error")
+	sshErr := &SSHError{
+		Original:   originalErr,
+		Suggestion: "Some suggestion",
+	}
+
+	if sshErr.Unwrap() != originalErr {
+		t.Error("Unwrap() should return original error")
 	}
 }
