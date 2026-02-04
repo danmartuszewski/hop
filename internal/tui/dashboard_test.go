@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"strings"
 	"testing"
 	"time"
 
@@ -255,6 +256,124 @@ func TestFuzzyFilterSubsequence(t *testing.T) {
 		if conn.ID != "myapp-prod-web" {
 			t.Errorf("expected fuzzy match 'myapp-prod-web', got %q", conn.ID)
 		}
+	}
+}
+
+func TestDetailsPanel(t *testing.T) {
+	// Create config with various connection features
+	cfg := &config.Config{
+		Version: 1,
+		Connections: []config.Connection{
+			{
+				ID:           "full-connection",
+				Host:         "server.example.com",
+				User:         "admin",
+				Port:         2222,
+				Project:      "myapp",
+				Env:          "prod",
+				Tags:         []string{"web", "critical"},
+				IdentityFile: "~/.ssh/id_rsa",
+				Options:      map[string]string{"StrictHostKeyChecking": "no"},
+			},
+		},
+		Groups: map[string][]string{},
+	}
+	m := NewModel(cfg, "1.0.0")
+	m.width = 120  // Wide enough to show panel
+	m.height = 30
+
+	// Render the details panel
+	panel := m.renderDetailsPanel(50)
+
+	// Verify panel contains connection info
+	if !strings.Contains(panel, "full-connection") {
+		t.Error("panel should contain connection ID")
+	}
+	if !strings.Contains(panel, "server.example.com") {
+		t.Error("panel should contain host")
+	}
+	if !strings.Contains(panel, "admin") {
+		t.Error("panel should contain user")
+	}
+	if !strings.Contains(panel, "2222") {
+		t.Error("panel should contain port")
+	}
+	if !strings.Contains(panel, "myapp") {
+		t.Error("panel should contain project")
+	}
+	if !strings.Contains(panel, "prod") {
+		t.Error("panel should contain environment")
+	}
+	if !strings.Contains(panel, "web") {
+		t.Error("panel should contain tags")
+	}
+	if !strings.Contains(panel, "id_rsa") {
+		t.Error("panel should contain identity file")
+	}
+	if !strings.Contains(panel, "StrictHostKeyChecking") {
+		t.Error("panel should contain SSH options")
+	}
+}
+
+func TestDetailsPanelWithMinimalConnection(t *testing.T) {
+	// Create config with minimal connection
+	cfg := &config.Config{
+		Version: 1,
+		Connections: []config.Connection{
+			{
+				ID:   "simple",
+				Host: "simple.example.com",
+			},
+		},
+		Groups: map[string][]string{},
+	}
+	m := NewModel(cfg, "1.0.0")
+	m.width = 120
+	m.height = 30
+
+	// Render the details panel - should not panic
+	panel := m.renderDetailsPanel(50)
+
+	// Verify basic info is present
+	if !strings.Contains(panel, "simple") {
+		t.Error("panel should contain connection ID")
+	}
+	if !strings.Contains(panel, "simple.example.com") {
+		t.Error("panel should contain host")
+	}
+}
+
+func TestListWithPanelRendering(t *testing.T) {
+	cfg := testConfig()
+	m := NewModel(cfg, "1.0.0")
+	m.width = 120  // Wide enough to show panel
+	m.height = 30
+
+	// Render the full list view
+	output := m.renderList()
+
+	// Should contain header, list, and footer
+	if output == "" {
+		t.Error("expected non-empty output")
+	}
+	// With wide terminal, panel should be present
+	if !strings.Contains(output, "Connection Details") {
+		t.Error("expected details panel in wide view")
+	}
+}
+
+func TestListWithoutPanelNarrowTerminal(t *testing.T) {
+	cfg := testConfig()
+	m := NewModel(cfg, "1.0.0")
+	m.width = 60  // Too narrow for panel
+	m.height = 30
+
+	// Render the full list view
+	output := m.renderList()
+
+	// Should not contain panel in narrow view
+	if strings.Contains(output, "Connection Details") {
+		t.Error("expected no details panel in narrow view")
 	}
 }
 
