@@ -495,6 +495,71 @@ func TestTagPickerView(t *testing.T) {
 	}
 }
 
+func TestMouseScrollNavigation(t *testing.T) {
+	cfg := testConfig()
+	m := NewModel(cfg, "1.0.0")
+
+	// Initial cursor at 0
+	if m.cursor != 0 {
+		t.Errorf("expected cursor 0, got %d", m.cursor)
+	}
+
+	// Scroll down with mouse wheel
+	newModel, _ := m.handleMouse(tea.MouseMsg{
+		Button: tea.MouseButtonWheelDown,
+	})
+	m = newModel.(Model)
+	if m.cursor != 1 {
+		t.Errorf("expected cursor 1 after wheel down, got %d", m.cursor)
+	}
+
+	// Scroll up with mouse wheel
+	newModel, _ = m.handleMouse(tea.MouseMsg{
+		Button: tea.MouseButtonWheelUp,
+	})
+	m = newModel.(Model)
+	if m.cursor != 0 {
+		t.Errorf("expected cursor 0 after wheel up, got %d", m.cursor)
+	}
+
+	// Scroll up at top should stay at 0
+	newModel, _ = m.handleMouse(tea.MouseMsg{
+		Button: tea.MouseButtonWheelUp,
+	})
+	m = newModel.(Model)
+	if m.cursor != 0 {
+		t.Errorf("expected cursor 0 at top, got %d", m.cursor)
+	}
+}
+
+func TestMouseClickSelection(t *testing.T) {
+	// Use simple config without project/env grouping
+	cfg := &config.Config{
+		Version: 1,
+		Connections: []config.Connection{
+			{ID: "server1", Host: "s1.example.com"},
+			{ID: "server2", Host: "s2.example.com"},
+			{ID: "server3", Host: "s3.example.com"},
+		},
+		Groups: map[string][]string{},
+	}
+	m := NewModel(cfg, "1.0.0")
+
+	// Click on line 3 (accounting for header=1, filter=1, so line 2 = first item)
+	// Line 2 = first item (server1)
+	// Line 3 = second item (server2)
+	newModel, _ := m.handleMouse(tea.MouseMsg{
+		Button: tea.MouseButtonLeft,
+		Action: tea.MouseActionRelease,
+		Y:      3, // Click on second item
+	})
+	m = newModel.(Model)
+
+	if m.cursor != 1 {
+		t.Errorf("expected cursor 1 after click, got %d", m.cursor)
+	}
+}
+
 func TestSelectConnection(t *testing.T) {
 	cfg := testConfig()
 	m := NewModel(cfg, "1.0.0")

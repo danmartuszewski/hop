@@ -340,6 +340,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m Model) updateList(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
+	case tea.MouseMsg:
+		return m.handleMouse(msg)
 	case tea.KeyMsg:
 		// Clear status message on any key
 		m.statusMsg = ""
@@ -465,6 +467,77 @@ func (m Model) updateList(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	}
 
+	return m, nil
+}
+
+func (m Model) handleMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
+	switch msg.Button {
+	case tea.MouseButtonWheelUp:
+		// Scroll up
+		if m.cursor > 0 {
+			m.cursor--
+		}
+		return m, nil
+	case tea.MouseButtonWheelDown:
+		// Scroll down
+		if m.cursor < len(m.filtered)-1 {
+			m.cursor++
+		}
+		return m, nil
+	case tea.MouseButtonLeft:
+		if msg.Action != tea.MouseActionRelease {
+			return m, nil
+		}
+		// Calculate which item was clicked
+		// Account for header (1 line) and filter bar (1 line) = offset of 2 lines
+		listStartY := 2
+		clickedLine := msg.Y - listStartY
+
+		if clickedLine < 0 || len(m.filtered) == 0 {
+			return m, nil
+		}
+
+		// Find the item at the clicked line (accounting for project/env headers)
+		displayLine := 0
+		lastProject := ""
+		lastEnv := ""
+		notFiltering := m.filter.Value() == ""
+
+		for fi, idx := range m.filtered {
+			item := m.items[idx]
+			conn := item.connection
+			if conn == nil {
+				continue
+			}
+
+			// Count header lines when not filtering
+			if notFiltering {
+				if conn.Project != "" && conn.Project != lastProject {
+					if displayLine == clickedLine {
+						// Clicked on project header, ignore
+						return m, nil
+					}
+					displayLine++
+					lastEnv = ""
+				}
+				if conn.Env != "" && (conn.Env != lastEnv || conn.Project != lastProject) {
+					if displayLine == clickedLine {
+						// Clicked on env header, ignore
+						return m, nil
+					}
+					displayLine++
+				}
+				lastProject = conn.Project
+				lastEnv = conn.Env
+			}
+
+			if displayLine == clickedLine {
+				m.cursor = fi
+				return m, nil
+			}
+			displayLine++
+		}
+	}
 	return m, nil
 }
 
@@ -1249,7 +1322,7 @@ func sortedMapKeys[V any](m map[string]V) []string {
 
 func Run(cfg *config.Config, version string) (*config.Connection, error) {
 	m := NewModel(cfg, version)
-	p := tea.NewProgram(m, tea.WithAltScreen())
+	p := tea.NewProgram(m, tea.WithAltScreen(), tea.WithMouseCellMotion())
 
 	finalModel, err := p.Run()
 	if err != nil {
