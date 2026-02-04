@@ -2,6 +2,7 @@ package tui
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/charmbracelet/bubbles/textinput"
@@ -54,6 +55,9 @@ type Model struct {
 	activeTags    map[string]bool
 	allTags       []string
 	tagCursor     int
+	// Recent connections
+	history       *config.History
+	sortByRecent  bool
 }
 
 func NewModel(cfg *config.Config, version string) Model {
@@ -67,6 +71,12 @@ func NewModel(cfg *config.Config, version string) Model {
 	paste.CharLimit = 200
 	paste.Width = 50
 
+	// Load history (ignore errors - history is optional)
+	history, _ := config.LoadHistory()
+	if history == nil {
+		history = &config.History{}
+	}
+
 	m := Model{
 		config:     cfg,
 		configPath: config.DefaultConfigPath(),
@@ -77,6 +87,7 @@ func NewModel(cfg *config.Config, version string) Model {
 		view:       viewList,
 		help:       NewHelpModel(),
 		activeTags: make(map[string]bool),
+		history:    history,
 	}
 
 	m.buildItems()
@@ -208,6 +219,7 @@ func (m *Model) resetFilter() {
 			m.filtered = append(m.filtered, i)
 		}
 	}
+	m.sortFiltered()
 	if m.cursor >= len(m.filtered) {
 		m.cursor = max(0, len(m.filtered)-1)
 	}
@@ -251,7 +263,39 @@ func (m *Model) applyFilter(query string) {
 			}
 		}
 	}
+	m.sortFiltered()
 	m.cursor = 0
+}
+
+// sortFiltered sorts the filtered list by recent usage if enabled
+func (m *Model) sortFiltered() {
+	if !m.sortByRecent || m.history == nil {
+		return
+	}
+
+	sort.SliceStable(m.filtered, func(i, j int) bool {
+		connI := m.items[m.filtered[i]].connection
+		connJ := m.items[m.filtered[j]].connection
+		if connI == nil || connJ == nil {
+			return false
+		}
+
+		timeI, okI := m.history.GetLastUsed(connI.ID)
+		timeJ, okJ := m.history.GetLastUsed(connJ.ID)
+
+		// Connections with no history go to the bottom
+		if !okI && !okJ {
+			return false
+		}
+		if !okI {
+			return false
+		}
+		if !okJ {
+			return true
+		}
+
+		return timeI.After(timeJ)
+	})
 }
 
 func (m *Model) selectedConnection() *config.Connection {
@@ -408,6 +452,15 @@ func (m Model) updateList(msg tea.Msg) (tea.Model, tea.Cmd) {
 			} else {
 				m.statusMsg = "No tags defined"
 			}
+			return m, nil
+		case "r":
+			m.sortByRecent = !m.sortByRecent
+			if m.sortByRecent {
+				m.statusMsg = "Sorted by recent"
+			} else {
+				m.statusMsg = "Sorted by name"
+			}
+			m.applyFilter(m.filter.Value())
 			return m, nil
 		}
 	}
@@ -1047,10 +1100,13 @@ func (m Model) renderFooter() string {
 	keys = append(keys, helpKeyStyle.Render("↑/↓")+" "+helpDescStyle.Render("nav"))
 	keys = append(keys, helpKeyStyle.Render("/")+" "+helpDescStyle.Render("filter"))
 	keys = append(keys, helpKeyStyle.Render("t")+" "+helpDescStyle.Render("tags"))
+	recentLabel := "recent"
+	if m.sortByRecent {
+		recentLabel = "recent*"
+	}
+	keys = append(keys, helpKeyStyle.Render("r")+" "+helpDescStyle.Render(recentLabel))
 	keys = append(keys, helpKeyStyle.Render("a")+" "+helpDescStyle.Render("add"))
-	keys = append(keys, helpKeyStyle.Render("p")+" "+helpDescStyle.Render("paste"))
 	keys = append(keys, helpKeyStyle.Render("e")+" "+helpDescStyle.Render("edit"))
-	keys = append(keys, helpKeyStyle.Render("c")+" "+helpDescStyle.Render("dup"))
 	keys = append(keys, helpKeyStyle.Render("d")+" "+helpDescStyle.Render("del"))
 	keys = append(keys, helpKeyStyle.Render("enter")+" "+helpDescStyle.Render("connect"))
 	keys = append(keys, helpKeyStyle.Render("?")+" "+helpDescStyle.Render("help"))
@@ -1201,5 +1257,13 @@ func Run(cfg *config.Config, version string) (*config.Connection, error) {
 	}
 
 	result := finalModel.(Model)
-	return result.Selected(), nil
+	selected := result.Selected()
+
+	// Record usage in history
+	if selected != nil && result.history != nil {
+		result.history.RecordUsage(selected.ID)
+		_ = result.history.Save() // Ignore save errors - history is optional
+	}
+
+	return selected, nil
 }
