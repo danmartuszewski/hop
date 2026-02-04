@@ -33,6 +33,12 @@ Examples:
   hop resolve prod --tag=web`,
 	Args: cobra.ExactArgs(1),
 	RunE: runResolve,
+	ValidArgsFunction: func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+		if len(args) >= 1 {
+			return nil, cobra.ShellCompDirectiveNoFileComp
+		}
+		return getConnectionCompletions(toComplete)
+	},
 }
 
 func init() {

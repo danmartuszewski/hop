@@ -23,6 +23,12 @@ var connectCmd = &cobra.Command{
 	Long:  "Connect to a server using its exact connection ID.",
 	Args:  cobra.ExactArgs(1),
 	RunE:  runConnect,
+	ValidArgsFunction: func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+		if len(args) >= 1 {
+			return nil, cobra.ShellCompDirectiveNoFileComp
+		}
+		return getConnectionCompletions(toComplete)
+	},
 }
 
 func init() {

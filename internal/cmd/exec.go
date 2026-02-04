@@ -39,6 +39,13 @@ Examples:
   hop exec --tag=database "psql -c 'SELECT 1'" # Filter by tag`,
 	Args: cobra.MinimumNArgs(2),
 	RunE: runExec,
+	ValidArgsFunction: func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+		if len(args) >= 1 {
+			// After the first arg (target), no more completions
+			return nil, cobra.ShellCompDirectiveNoFileComp
+		}
+		return getConnectionCompletions(toComplete)
+	},
 }
 
 func init() {

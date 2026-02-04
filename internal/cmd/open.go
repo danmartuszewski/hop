@@ -48,6 +48,9 @@ Examples:
 		return nil
 	},
 	RunE: runOpen,
+	ValidArgsFunction: func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+		return getConnectionCompletions(toComplete)
+	},
 }
 
 func init() {
