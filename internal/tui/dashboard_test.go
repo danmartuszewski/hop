@@ -377,6 +377,124 @@ func TestListWithoutPanelNarrowTerminal(t *testing.T) {
 	}
 }
 
+func TestTagFilterUI(t *testing.T) {
+	// Create config with tagged connections
+	cfg := &config.Config{
+		Version: 1,
+		Connections: []config.Connection{
+			{ID: "web1", Host: "web1.example.com", Tags: []string{"web", "prod"}},
+			{ID: "web2", Host: "web2.example.com", Tags: []string{"web", "staging"}},
+			{ID: "db1", Host: "db1.example.com", Tags: []string{"database", "prod"}},
+			{ID: "db2", Host: "db2.example.com", Tags: []string{"database", "staging"}},
+		},
+		Groups: map[string][]string{},
+	}
+	m := NewModel(cfg, "1.0.0")
+
+	// Verify tags were collected
+	if len(m.allTags) != 4 {
+		t.Errorf("expected 4 unique tags, got %d", len(m.allTags))
+	}
+
+	// All connections should be visible initially
+	if len(m.filtered) != 4 {
+		t.Errorf("expected 4 filtered connections initially, got %d", len(m.filtered))
+	}
+
+	// Activate "web" tag
+	m.activeTags["web"] = true
+	m.applyFilter("")
+
+	// Should show only 2 connections with "web" tag
+	if len(m.filtered) != 2 {
+		t.Errorf("expected 2 filtered connections with 'web' tag, got %d", len(m.filtered))
+	}
+
+	// Activate "prod" tag as well (AND logic)
+	m.activeTags["prod"] = true
+	m.applyFilter("")
+
+	// Should show only 1 connection with both "web" AND "prod" tags
+	if len(m.filtered) != 1 {
+		t.Errorf("expected 1 filtered connection with 'web' AND 'prod' tags, got %d", len(m.filtered))
+	}
+
+	// Clear tags
+	m.activeTags = make(map[string]bool)
+	m.applyFilter("")
+
+	// All connections visible again
+	if len(m.filtered) != 4 {
+		t.Errorf("expected 4 filtered connections after clearing tags, got %d", len(m.filtered))
+	}
+}
+
+func TestTagFilterWithTextFilter(t *testing.T) {
+	cfg := &config.Config{
+		Version: 1,
+		Connections: []config.Connection{
+			{ID: "web-prod", Host: "web.prod.example.com", Tags: []string{"web"}},
+			{ID: "web-staging", Host: "web.staging.example.com", Tags: []string{"web"}},
+			{ID: "api-prod", Host: "api.prod.example.com", Tags: []string{"api"}},
+		},
+		Groups: map[string][]string{},
+	}
+	m := NewModel(cfg, "1.0.0")
+
+	// Activate "web" tag and search for "prod"
+	m.activeTags["web"] = true
+	m.applyFilter("prod")
+
+	// Should show only 1 connection matching both tag and search
+	if len(m.filtered) != 1 {
+		t.Errorf("expected 1 filtered connection, got %d", len(m.filtered))
+	}
+
+	if len(m.filtered) > 0 {
+		idx := m.filtered[0]
+		conn := m.items[idx].connection
+		if conn.ID != "web-prod" {
+			t.Errorf("expected 'web-prod', got %q", conn.ID)
+		}
+	}
+}
+
+func TestTagPickerView(t *testing.T) {
+	cfg := &config.Config{
+		Version: 1,
+		Connections: []config.Connection{
+			{ID: "server1", Host: "s1.example.com", Tags: []string{"web", "prod"}},
+		},
+		Groups: map[string][]string{},
+	}
+	m := NewModel(cfg, "1.0.0")
+
+	// Press t to open tag picker
+	newModel, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'t'}})
+	m = newModel.(Model)
+
+	if m.view != viewTagPicker {
+		t.Errorf("expected viewTagPicker, got %v", m.view)
+	}
+
+	// Render tag picker
+	output := m.renderTagPicker()
+	if !strings.Contains(output, "web") {
+		t.Error("tag picker should show 'web' tag")
+	}
+	if !strings.Contains(output, "prod") {
+		t.Error("tag picker should show 'prod' tag")
+	}
+
+	// Press esc to close
+	newModel, _ = m.Update(tea.KeyMsg{Type: tea.KeyEscape})
+	m = newModel.(Model)
+
+	if m.view != viewList {
+		t.Errorf("expected viewList after esc, got %v", m.view)
+	}
+}
+
 func TestSelectConnection(t *testing.T) {
 	cfg := testConfig()
 	m := NewModel(cfg, "1.0.0")

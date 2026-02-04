@@ -19,6 +19,7 @@ const (
 	viewForm
 	viewConfirmDelete
 	viewPaste
+	viewTagPicker
 )
 
 type listItem struct {
@@ -49,6 +50,10 @@ type Model struct {
 	pasteInput   textinput.Model
 	statusMsg    string
 	deleteTarget *config.Connection
+	// Tag filtering
+	activeTags    map[string]bool
+	allTags       []string
+	tagCursor     int
 }
 
 func NewModel(cfg *config.Config, version string) Model {
@@ -71,9 +76,11 @@ func NewModel(cfg *config.Config, version string) Model {
 		filtered:   []int{},
 		view:       viewList,
 		help:       NewHelpModel(),
+		activeTags: make(map[string]bool),
 	}
 
 	m.buildItems()
+	m.collectTags()
 	m.resetFilter()
 
 	return m
@@ -142,10 +149,62 @@ func (m *Model) groupConnections() map[string]map[string][]config.Connection {
 	return groups
 }
 
+func (m *Model) collectTags() {
+	tagSet := make(map[string]bool)
+	for _, conn := range m.config.Connections {
+		for _, tag := range conn.Tags {
+			tagSet[tag] = true
+		}
+	}
+	m.allTags = make([]string, 0, len(tagSet))
+	for tag := range tagSet {
+		m.allTags = append(m.allTags, tag)
+	}
+	// Sort tags alphabetically
+	for i := 0; i < len(m.allTags)-1; i++ {
+		for j := i + 1; j < len(m.allTags); j++ {
+			if m.allTags[i] > m.allTags[j] {
+				m.allTags[i], m.allTags[j] = m.allTags[j], m.allTags[i]
+			}
+		}
+	}
+}
+
+func (m *Model) hasActiveTagFilter() bool {
+	for _, active := range m.activeTags {
+		if active {
+			return true
+		}
+	}
+	return false
+}
+
+func (m *Model) matchesTags(conn *config.Connection) bool {
+	if !m.hasActiveTagFilter() {
+		return true
+	}
+	for tag, active := range m.activeTags {
+		if !active {
+			continue
+		}
+		found := false
+		for _, connTag := range conn.Tags {
+			if strings.EqualFold(connTag, tag) {
+				found = true
+				break
+			}
+		}
+		if !found {
+			return false
+		}
+	}
+	return true
+}
+
 func (m *Model) resetFilter() {
 	m.filtered = []int{}
 	for i, item := range m.items {
-		if item.connection != nil {
+		if item.connection != nil && m.matchesTags(item.connection) {
 			m.filtered = append(m.filtered, i)
 		}
 	}
@@ -155,13 +214,10 @@ func (m *Model) resetFilter() {
 }
 
 func (m *Model) applyFilter(query string) {
-	if query == "" {
+	if query == "" && !m.hasActiveTagFilter() {
 		m.resetFilter()
 		return
 	}
-
-	// Use sophisticated fuzzy matching with scoring for consistency with CLI
-	matches := fuzzy.FindMatches(query, m.config.Connections)
 
 	// Build a map of connection ID to item index for efficient lookup
 	idToIndex := make(map[string]int)
@@ -171,11 +227,28 @@ func (m *Model) applyFilter(query string) {
 		}
 	}
 
-	// Convert matches to filtered indices, preserving score-based order
 	m.filtered = []int{}
-	for _, match := range matches {
-		if idx, ok := idToIndex[match.Connection.ID]; ok {
-			m.filtered = append(m.filtered, idx)
+
+	if query == "" {
+		// Only tag filtering active
+		for i, item := range m.items {
+			if item.connection != nil && m.matchesTags(item.connection) {
+				m.filtered = append(m.filtered, i)
+			}
+		}
+	} else {
+		// Use sophisticated fuzzy matching with scoring for consistency with CLI
+		matches := fuzzy.FindMatches(query, m.config.Connections)
+
+		// Convert matches to filtered indices, preserving score-based order
+		// Also apply tag filter
+		for _, match := range matches {
+			if !m.matchesTags(match.Connection) {
+				continue
+			}
+			if idx, ok := idToIndex[match.Connection.ID]; ok {
+				m.filtered = append(m.filtered, idx)
+			}
 		}
 	}
 	m.cursor = 0
@@ -214,6 +287,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m.updateConfirmDelete(msg)
 	case viewPaste:
 		return m.updatePaste(msg)
+	case viewTagPicker:
+		return m.updateTagPicker(msg)
 	default:
 		return m.updateList(msg)
 	}
@@ -324,6 +399,14 @@ func (m Model) updateList(msg tea.Msg) (tea.Model, tea.Cmd) {
 					sshCmd += fmt.Sprintf(" -p %d", conn.Port)
 				}
 				m.statusMsg = fmt.Sprintf("Copied: %s", sshCmd)
+			}
+			return m, nil
+		case "t":
+			if len(m.allTags) > 0 {
+				m.tagCursor = 0
+				m.view = viewTagPicker
+			} else {
+				m.statusMsg = "No tags defined"
 			}
 			return m, nil
 		}
@@ -443,6 +526,41 @@ func (m Model) updatePaste(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, cmd
 }
 
+func (m Model) updateTagPicker(msg tea.Msg) (tea.Model, tea.Cmd) {
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		switch msg.String() {
+		case "esc", "t":
+			m.view = viewList
+			return m, nil
+		case "enter", " ":
+			// Toggle selected tag
+			if m.tagCursor < len(m.allTags) {
+				tag := m.allTags[m.tagCursor]
+				m.activeTags[tag] = !m.activeTags[tag]
+				m.applyFilter(m.filter.Value())
+			}
+			return m, nil
+		case "up", "k":
+			if m.tagCursor > 0 {
+				m.tagCursor--
+			}
+			return m, nil
+		case "down", "j":
+			if m.tagCursor < len(m.allTags)-1 {
+				m.tagCursor++
+			}
+			return m, nil
+		case "c":
+			// Clear all tag filters
+			m.activeTags = make(map[string]bool)
+			m.applyFilter(m.filter.Value())
+			return m, nil
+		}
+	}
+	return m, nil
+}
+
 func (m Model) View() string {
 	if m.quitting {
 		return ""
@@ -457,6 +575,8 @@ func (m Model) View() string {
 		return m.renderConfirmDelete()
 	case viewPaste:
 		return m.renderPaste()
+	case viewTagPicker:
+		return m.renderTagPicker()
 	default:
 		return m.renderList()
 	}
@@ -568,6 +688,21 @@ func (m Model) renderFilterBar() string {
 	} else {
 		filterView = statusStyle.Render(fmt.Sprintf(" %d connections", len(m.filtered)))
 	}
+
+	// Append active tags
+	var activeTags []string
+	for _, tag := range m.allTags {
+		if m.activeTags[tag] {
+			activeTags = append(activeTags, tag)
+		}
+	}
+	if len(activeTags) > 0 {
+		filterView += " "
+		for _, tag := range activeTags {
+			filterView += " " + panelTagStyle.Render(tag)
+		}
+	}
+
 	return filterView
 }
 
@@ -911,6 +1046,7 @@ func (m Model) renderFooter() string {
 
 	keys = append(keys, helpKeyStyle.Render("↑/↓")+" "+helpDescStyle.Render("nav"))
 	keys = append(keys, helpKeyStyle.Render("/")+" "+helpDescStyle.Render("filter"))
+	keys = append(keys, helpKeyStyle.Render("t")+" "+helpDescStyle.Render("tags"))
 	keys = append(keys, helpKeyStyle.Render("a")+" "+helpDescStyle.Render("add"))
 	keys = append(keys, helpKeyStyle.Render("p")+" "+helpDescStyle.Render("paste"))
 	keys = append(keys, helpKeyStyle.Render("e")+" "+helpDescStyle.Render("edit"))
@@ -974,6 +1110,53 @@ func (m Model) renderPaste() string {
 	b.WriteString(helpKeyStyle.Render("enter") + " " + helpDescStyle.Render("parse & continue"))
 	b.WriteString("  ")
 	b.WriteString(helpKeyStyle.Render("esc") + " " + helpDescStyle.Render("cancel"))
+
+	return b.String()
+}
+
+func (m Model) renderTagPicker() string {
+	var b strings.Builder
+
+	b.WriteString(titleStyle.Render("Filter by Tags"))
+	b.WriteString("\n\n")
+
+	if len(m.allTags) == 0 {
+		b.WriteString(emptyStyle.Render("No tags defined in your connections."))
+		b.WriteString("\n\n")
+	} else {
+		b.WriteString(helpDescStyle.Render("Select tags to filter connections (AND logic):"))
+		b.WriteString("\n\n")
+
+		for i, tag := range m.allTags {
+			isSelected := m.tagCursor == i
+			isActive := m.activeTags[tag]
+
+			// Checkbox
+			checkbox := "[ ]"
+			if isActive {
+				checkbox = "[✓]"
+			}
+
+			line := "  " + checkbox + " " + tag
+
+			if isSelected {
+				b.WriteString(selectedItemStyle.Render("> " + checkbox + " " + tag))
+			} else if isActive {
+				b.WriteString("  " + panelTagStyle.Render(checkbox+" "+tag))
+			} else {
+				b.WriteString("  " + helpDescStyle.Render(checkbox+" "+tag))
+			}
+			b.WriteString("\n")
+			_ = line // silence unused
+		}
+	}
+
+	b.WriteString("\n")
+	b.WriteString(helpKeyStyle.Render("space/enter") + " " + helpDescStyle.Render("toggle"))
+	b.WriteString("  ")
+	b.WriteString(helpKeyStyle.Render("c") + " " + helpDescStyle.Render("clear all"))
+	b.WriteString("  ")
+	b.WriteString(helpKeyStyle.Render("esc/t") + " " + helpDescStyle.Render("close"))
 
 	return b.String()
 }
