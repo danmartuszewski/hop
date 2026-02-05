@@ -1,56 +1,66 @@
-![hop](assets/icon.png)
+<p align="center">
+  <img src="assets/icon.png" height="128">
+</p>
 
-# hop
+<h1 align="center">hop</h1>
 
-Fast, elegant SSH connection manager with a TUI dashboard.
+<p align="center">
+  Stop typing long SSH commands. Just <code>hop prod</code> and you're in.
+</p>
 
-![hop TUI dashboard](hop.gif)
+<p align="center">
+  <img src="hop.gif" alt="hop TUI dashboard">
+</p>
 
+## Why hop?
+
+```bash
+# Before: remembering and typing this every time
+ssh -i ~/.ssh/work_key deploy@app-server-prod-03.us-east-1.example.com -p 2222
+
+# After
+hop prod
 ```
-hop prod          # fuzzy match & connect
-hop               # open TUI dashboard
-hop list          # list all connections
+
+```bash
+hop prod                         # fuzzy match any server
+hop exec production "uptime"     # run command on all prod servers
+hop import                       # import your existing ~/.ssh/config
+hop                              # launch the TUI, manage everything
 ```
 
-## Features
-
-- **Fuzzy matching** - Connect with minimal keystrokes
-- **TUI dashboard** - Browse, add, edit, delete connections interactively
-- **Quick paste** - Parse `user@host:port` strings instantly
-- **SSH config import** - Import connections from `~/.ssh/config`
-- **Groups** - Organize connections by project and environment
-- **Multi-exec** - Run commands across multiple servers
-- **Jump hosts** - ProxyJump support for bastion servers
-- **Mouse support** - Scroll and click in the dashboard
-- **Zero dependencies** - Single binary, no runtime requirements
-
-## Installation
-
-### From source
+## Install
 
 ```bash
 go install github.com/danmartuszewski/hop/cmd/hop@latest
 ```
 
-### Build locally
+Or build from source:
 
 ```bash
-git clone https://github.com/danmartuszewski/hop.git
-cd hop
-make build
+git clone https://github.com/danmartuszewski/hop.git && cd hop && make build
 ./bin/hop
 ```
 
-## Quick Start
+## Features
 
-1. **Launch the dashboard:**
-   ```bash
-   hop
-   ```
+- **Fuzzy matching** - Type `hop prod` to connect to `app-server-prod-03`
+- **TUI dashboard** - Browse, add, edit, delete connections with keyboard or mouse
+- **SSH config import** - Already have servers in `~/.ssh/config`? Import them in one command
+- **Multi-exec** - Run commands across multiple servers at once
+- **Groups & tags** - Organize by project, environment, or custom tags
+- **Jump hosts** - ProxyJump support for bastion servers
+- **Zero dependencies** - Single binary, works anywhere
 
-2. **Add a connection** - Press `a` and fill in the form, or press `p` to paste an SSH string like `user@host.com`
+## Coming Soon: Raycast Extension
 
-3. **Connect** - Select a connection and press `Enter`
+Launch connections directly from Raycast. Fuzzy search, tags, environments - all at your fingertips.
+
+<p align="center">
+  <img src="assets/hop1.png" width="32%">
+  <img src="assets/hop2.png" width="32%">
+  <img src="assets/hop3.png" width="32%">
+</p>
 
 ## Configuration
 
@@ -91,12 +101,12 @@ connections:
     proxy_jump: bastion          # Connect via jump host
     forward_agent: true          # Forward SSH agent
 
-> **Security note:** `forward_agent: true` exposes your SSH keys to anyone with root access on the remote server. Only enable this for servers you fully trust. Consider using `proxy_jump` instead when you just need to reach internal hosts through a bastion.
-
 groups:
   production: [prod-web, prod-db]
   web-servers: [prod-web, staging]
 ```
+
+> **Security note:** `forward_agent: true` exposes your SSH keys to anyone with root access on the remote server. Only enable this for servers you fully trust. Consider using `proxy_jump` instead when you just need to reach internal hosts through a bastion.
 
 ## TUI Dashboard
 
