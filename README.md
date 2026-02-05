@@ -1,3 +1,5 @@
+![hop](assets/icon.png)
+
 # hop
 
 Fast, elegant SSH connection manager with a TUI dashboard.
