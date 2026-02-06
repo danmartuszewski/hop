@@ -44,20 +44,19 @@ func NewFormModel(title string, conn *config.Connection) FormModel {
 
 		switch formField(i) {
 		case fieldID:
-			t.Placeholder = "_______________"
 			t.Focus()
 		case fieldHost:
-			t.Placeholder = "_______________"
+			// required, no placeholder
 		case fieldUser:
-			t.Placeholder = "(optional)"
+			// optional
 		case fieldPort:
 			// Port will be pre-filled with 22
 		case fieldProject:
-			t.Placeholder = "(optional)"
+			// optional
 		case fieldEnv:
-			t.Placeholder = "(optional)"
+			// optional
 		case fieldTags:
-			t.Placeholder = "(optional, comma-separated)"
+			t.Placeholder = "comma-separated"
 		}
 
 		inputs[i] = t
