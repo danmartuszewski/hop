@@ -10,28 +10,28 @@ import (
 
 type Config struct {
 	Version     int                 `yaml:"version"`
-	Defaults    Defaults            `yaml:"defaults"`
+	Defaults    Defaults            `yaml:"defaults,omitempty"`
 	Connections []Connection        `yaml:"connections"`
-	Groups      map[string][]string `yaml:"groups"`
+	Groups      map[string][]string `yaml:"groups,omitempty"`
 }
 
 type Defaults struct {
-	User string `yaml:"user"`
-	Port int    `yaml:"port"`
+	User string `yaml:"user,omitempty"`
+	Port int    `yaml:"port,omitempty"`
 }
 
 type Connection struct {
 	ID           string            `yaml:"id"`
 	Host         string            `yaml:"host"`
-	User         string            `yaml:"user"`
-	Port         int               `yaml:"port"`
-	Project      string            `yaml:"project"`
-	Env          string            `yaml:"env"`
-	IdentityFile string            `yaml:"identity_file"`
+	User         string            `yaml:"user,omitempty"`
+	Port         int               `yaml:"port,omitempty"`
+	Project      string            `yaml:"project,omitempty"`
+	Env          string            `yaml:"env,omitempty"`
+	IdentityFile string            `yaml:"identity_file,omitempty"`
 	ProxyJump    string            `yaml:"proxy_jump,omitempty"`
 	ForwardAgent bool              `yaml:"forward_agent,omitempty"`
-	Tags         []string          `yaml:"tags"`
-	Options      map[string]string `yaml:"options"`
+	Tags         []string          `yaml:"tags,omitempty"`
+	Options      map[string]string `yaml:"options,omitempty"`
 }
 
 func DefaultConfigPath() string {

@@ -3,6 +3,7 @@ package config
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -61,6 +62,49 @@ connections:
 	}
 	if conn2.Port != 2222 {
 		t.Errorf("Connections[1].Port = %d, want 2222", conn2.Port)
+	}
+}
+
+func TestSaveOmitsEmptyOptionalFields(t *testing.T) {
+	tmpDir := t.TempDir()
+	configPath := filepath.Join(tmpDir, "config.yaml")
+
+	// Config with minimal connection — only required fields + one optional
+	content := `version: 1
+
+defaults:
+  user: deploy
+
+connections:
+  - id: homelab
+    host: 192.168.1.100
+    user: dan
+`
+	if err := os.WriteFile(configPath, []byte(content), 0644); err != nil {
+		t.Fatalf("failed to write test config: %v", err)
+	}
+
+	cfg, err := Load(configPath)
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+
+	// Save (round-trip)
+	if err := cfg.Save(configPath); err != nil {
+		t.Fatalf("Save() error = %v", err)
+	}
+
+	saved, err := os.ReadFile(configPath)
+	if err != nil {
+		t.Fatalf("failed to read saved config: %v", err)
+	}
+	output := string(saved)
+
+	// Empty optional fields should NOT appear in saved config
+	for _, field := range []string{"project:", "env:", "identity_file:", "tags:", "options:"} {
+		if strings.Contains(output, field) {
+			t.Errorf("saved config should not contain %q when field was not set, got:\n%s", field, output)
+		}
 	}
 }
 
