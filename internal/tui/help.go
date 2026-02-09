@@ -43,6 +43,7 @@ func (m HelpModel) View() string {
 			keys: [][]string{
 				{"↑/k", "Move up"},
 				{"↓/j", "Move down"},
+				{"pgup/pgdn", "Move by page"},
 				{"g", "Go to top"},
 				{"G", "Go to bottom"},
 				{"/", "Filter connections"},

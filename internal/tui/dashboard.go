@@ -394,6 +394,20 @@ func (m Model) updateList(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.cursor < len(m.filtered)-1 {
 				m.cursor++
 			}
+		case "pgup":
+			if len(m.filtered) > 0 {
+				m.cursor -= m.visibleListHeight()
+				if m.cursor < 0 {
+					m.cursor = 0
+				}
+			}
+		case "pgdown":
+			if len(m.filtered) > 0 {
+				m.cursor += m.visibleListHeight()
+				if m.cursor > len(m.filtered)-1 {
+					m.cursor = len(m.filtered) - 1
+				}
+			}
 		case "home", "g":
 			m.cursor = 0
 		case "end", "G":
@@ -558,6 +572,14 @@ func (m Model) handleMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 
 func (m Model) listStartY() int {
 	return lipgloss.Height(m.renderHeader()) + lipgloss.Height(m.renderFilterBar())
+}
+
+func (m Model) visibleListHeight() int {
+	listHeight := m.height - 7
+	if listHeight < 5 {
+		listHeight = 5
+	}
+	return listHeight
 }
 
 func (m Model) updateHelp(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -936,10 +958,7 @@ func (m Model) renderListContent() string {
 	}
 
 	// Calculate visible range based on cursor position in display lines
-	listHeight := m.height - 7
-	if listHeight < 5 {
-		listHeight = 5
-	}
+	listHeight := m.visibleListHeight()
 
 	// Find the display line index that corresponds to the cursor
 	cursorDisplayIdx := 0

@@ -102,6 +102,46 @@ func TestNavigationKeys(t *testing.T) {
 	}
 }
 
+func TestPageNavigationKeys(t *testing.T) {
+	cfg := &config.Config{
+		Version: 1,
+		Groups:  map[string][]string{},
+	}
+	for i := 0; i < 20; i++ {
+		cfg.Connections = append(cfg.Connections, config.Connection{
+			ID:   "server-" + string(rune('a'+i)),
+			Host: "example.com",
+		})
+	}
+
+	m := NewModel(cfg, "1.0.0")
+	m.height = 20 // visible list height = 13
+
+	newModel, _ := m.Update(tea.KeyMsg{Type: tea.KeyPgDown})
+	m = newModel.(Model)
+	if m.cursor != 13 {
+		t.Errorf("expected cursor 13 after pgdown, got %d", m.cursor)
+	}
+
+	newModel, _ = m.Update(tea.KeyMsg{Type: tea.KeyPgDown})
+	m = newModel.(Model)
+	if m.cursor != 19 {
+		t.Errorf("expected cursor 19 after second pgdown, got %d", m.cursor)
+	}
+
+	newModel, _ = m.Update(tea.KeyMsg{Type: tea.KeyPgUp})
+	m = newModel.(Model)
+	if m.cursor != 6 {
+		t.Errorf("expected cursor 6 after pgup, got %d", m.cursor)
+	}
+
+	newModel, _ = m.Update(tea.KeyMsg{Type: tea.KeyPgUp})
+	m = newModel.(Model)
+	if m.cursor != 0 {
+		t.Errorf("expected cursor 0 after second pgup, got %d", m.cursor)
+	}
+}
+
 func TestViewSwitching(t *testing.T) {
 	cfg := testConfig()
 	m := NewModel(cfg, "1.0.0")
