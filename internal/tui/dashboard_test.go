@@ -426,14 +426,42 @@ func TestMouseClickSelection(t *testing.T) {
 		Groups: map[string][]string{},
 	}
 	m := NewModel(cfg, "1.0.0")
+	m.width = 100
+	m.height = 30
 
-	// Click on line 3 (accounting for header=1, filter=1, so line 2 = first item)
-	// Line 2 = first item (server1)
-	// Line 3 = second item (server2)
+	// Click on the rendered line containing server1.
+	view := m.View()
+	lines := strings.Split(view, "\n")
+	server1Y := -1
+	server2Y := -1
+	for i, line := range lines {
+		if strings.Contains(line, "server1") {
+			server1Y = i
+		}
+		if strings.Contains(line, "server2") {
+			server2Y = i
+		}
+	}
+	if server1Y == -1 || server2Y == -1 {
+		t.Fatalf("failed to find server lines in rendered view")
+	}
+
 	newModel, _ := m.handleMouse(tea.MouseMsg{
 		Button: tea.MouseButtonLeft,
 		Action: tea.MouseActionRelease,
-		Y:      3, // Click on second item
+		Y:      server1Y,
+	})
+	m = newModel.(Model)
+
+	if m.cursor != 0 {
+		t.Errorf("expected cursor 0 after clicking server1, got %d", m.cursor)
+	}
+
+	// Click on the rendered line containing server2.
+	newModel, _ = m.handleMouse(tea.MouseMsg{
+		Button: tea.MouseButtonLeft,
+		Action: tea.MouseActionRelease,
+		Y:      server2Y,
 	})
 	m = newModel.(Model)
 

@@ -502,9 +502,10 @@ func (m Model) handleMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 		if msg.Action != tea.MouseActionRelease {
 			return m, nil
 		}
-		// Calculate which item was clicked
-		// Account for header (1 line) and filter bar (1 line) = offset of 2 lines
-		listStartY := 2
+		// Calculate which item was clicked.
+		// We derive list start from rendered component heights so hit testing stays
+		// aligned if styles add borders/padding.
+		listStartY := m.listStartY()
 		clickedLine := msg.Y - listStartY
 
 		if clickedLine < 0 || len(m.filtered) == 0 {
@@ -553,6 +554,10 @@ func (m Model) handleMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 		}
 	}
 	return m, nil
+}
+
+func (m Model) listStartY() int {
+	return lipgloss.Height(m.renderHeader()) + lipgloss.Height(m.renderFilterBar())
 }
 
 func (m Model) updateHelp(msg tea.Msg) (tea.Model, tea.Cmd) {
