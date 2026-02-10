@@ -2,6 +2,7 @@ package tui
 
 import (
 	"fmt"
+	"os"
 	"sort"
 	"strings"
 
@@ -9,6 +10,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/danmartuszewski/hop/internal/config"
+	"github.com/danmartuszewski/hop/internal/export"
 	"github.com/danmartuszewski/hop/internal/fuzzy"
 )
 
@@ -22,6 +24,7 @@ const (
 	viewPaste
 	viewTagPicker
 	viewImport
+	viewExport
 )
 
 type listItem struct {
@@ -61,6 +64,8 @@ type Model struct {
 	sortByRecent bool
 	// Import modal
 	importModel ImportModel
+	// Export modal
+	exportModel ExportModel
 }
 
 func NewModel(cfg *config.Config, version string) Model {
@@ -338,6 +343,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m.updateTagPicker(msg)
 	case viewImport:
 		return m.updateImport(msg)
+	case viewExport:
+		return m.updateExport(msg)
 	default:
 		return m.updateList(msg)
 	}
@@ -482,6 +489,21 @@ func (m Model) updateList(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.statusMsg = "Sorted by name"
 			}
 			m.applyFilter(m.filter.Value())
+			return m, nil
+		case "x":
+			// Build list of currently filtered connections for export
+			var conns []config.Connection
+			for _, idx := range m.filtered {
+				if m.items[idx].connection != nil {
+					conns = append(conns, *m.items[idx].connection)
+				}
+			}
+			if len(conns) == 0 {
+				m.statusMsg = "No connections to export"
+				return m, nil
+			}
+			m.exportModel = NewExportModel(conns, m.width, m.height)
+			m.view = viewExport
 			return m, nil
 		case "i":
 			// Build set of existing IDs
@@ -766,6 +788,47 @@ func (m Model) updateImport(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, cmd
 }
 
+func (m Model) updateExport(msg tea.Msg) (tea.Model, tea.Cmd) {
+	var cmd tea.Cmd
+	m.exportModel, cmd = m.exportModel.Update(msg)
+
+	if m.exportModel.Cancelled() {
+		m.view = viewList
+		return m, nil
+	}
+
+	if m.exportModel.Confirmed() {
+		selected := m.exportModel.SelectedConnections()
+		if len(selected) == 0 {
+			m.statusMsg = "No connections selected"
+			m.view = viewList
+			return m, nil
+		}
+
+		outputPath := m.exportModel.OutputPath()
+		exportCfg := export.BuildExportConfig(selected)
+
+		f, err := os.Create(outputPath)
+		if err != nil {
+			m.statusMsg = "Export error: " + err.Error()
+			m.view = viewList
+			return m, nil
+		}
+		defer f.Close()
+
+		if err := export.WriteYAML(f, exportCfg); err != nil {
+			m.statusMsg = "Export error: " + err.Error()
+		} else {
+			m.statusMsg = fmt.Sprintf("Exported %d connection(s) to %s", len(selected), outputPath)
+		}
+
+		m.view = viewList
+		return m, nil
+	}
+
+	return m, cmd
+}
+
 func (m Model) View() string {
 	if m.quitting {
 		return ""
@@ -784,6 +847,8 @@ func (m Model) View() string {
 		return m.renderTagPicker()
 	case viewImport:
 		return m.importModel.View()
+	case viewExport:
+		return m.exportModel.View()
 	default:
 		return m.renderList()
 	}
@@ -1000,6 +1065,7 @@ func (m Model) renderFooter() string {
 	keys = append(keys, helpKeyStyle.Render("r")+" "+helpDescStyle.Render(recentLabel))
 	keys = append(keys, helpKeyStyle.Render("a")+" "+helpDescStyle.Render("add"))
 	keys = append(keys, helpKeyStyle.Render("i")+" "+helpDescStyle.Render("import"))
+	keys = append(keys, helpKeyStyle.Render("x")+" "+helpDescStyle.Render("export"))
 	keys = append(keys, helpKeyStyle.Render("e")+" "+helpDescStyle.Render("edit"))
 	keys = append(keys, helpKeyStyle.Render("d")+" "+helpDescStyle.Render("del"))
 	keys = append(keys, helpKeyStyle.Render("enter")+" "+helpDescStyle.Render("connect"))

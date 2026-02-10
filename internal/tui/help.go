@@ -60,12 +60,14 @@ func (m HelpModel) View() string {
 				{"c", "Duplicate selected connection"},
 				{"d", "Delete selected connection"},
 				{"y", "Copy SSH command"},
+			{"x", "Export connections to YAML"},
 			},
 		},
 		{
 			title: "General",
 			keys: [][]string{
-				{"?", "Toggle this help"},
+				{"i", "Import from SSH config"},
+			{"?", "Toggle this help"},
 				{"q", "Quit"},
 				{"ctrl+c", "Force quit"},
 			},
