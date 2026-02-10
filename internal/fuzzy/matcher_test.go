@@ -63,6 +63,24 @@ func TestFindMatches(t *testing.T) {
 			wantFirst: "myapp-prod-db",
 			wantCount: 4,
 		},
+		{
+			name:      "multi keyword AND",
+			query:     "prod web",
+			wantFirst: "myapp-prod-web1",
+			wantCount: 2,
+		},
+		{
+			name:      "multi keyword narrows results",
+			query:     "prod client",
+			wantFirst: "client-prod-api",
+			wantCount: 1,
+		},
+		{
+			name:      "multi keyword no match when one keyword fails",
+			query:     "prod nonexistent",
+			wantFirst: "",
+			wantCount: 0,
+		},
 	}
 
 	for _, tt := range tests {

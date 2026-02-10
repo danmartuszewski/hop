@@ -18,15 +18,25 @@ func FindMatches(query string, connections []config.Connection) []Match {
 	}
 
 	query = strings.ToLower(query)
+	keywords := strings.Fields(query)
 	var matches []Match
 
 	for i := range connections {
 		conn := &connections[i]
-		score := scoreConnection(query, conn)
-		if score > 0 {
+		totalScore := 0
+		allMatch := true
+		for _, kw := range keywords {
+			score := scoreConnection(kw, conn)
+			if score <= 0 {
+				allMatch = false
+				break
+			}
+			totalScore += score
+		}
+		if allMatch && totalScore > 0 {
 			matches = append(matches, Match{
 				Connection: conn,
-				Score:      score,
+				Score:      totalScore,
 			})
 		}
 	}
