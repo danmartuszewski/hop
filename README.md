@@ -47,6 +47,7 @@ git clone https://github.com/danmartuszewski/hop.git && cd hop && make build
 - **Fuzzy matching** - Type `hop prod` to connect to `app-server-prod-03`
 - **TUI dashboard** - Browse, add, edit, delete connections with keyboard or mouse
 - **SSH config import** - Already have servers in `~/.ssh/config`? Import them in one command
+- **Export** - Export filtered connections to YAML for sharing or backup
 - **Multi-exec** - Run commands across multiple servers at once
 - **Groups & tags** - Organize by project, environment, or custom tags
 - **Jump hosts** - ProxyJump support for bastion servers
@@ -130,6 +131,7 @@ Launch with `hop` or `hop dashboard`.
 | `e` | Edit selected |
 | `c` | Duplicate selected |
 | `d` | Delete selected |
+| `x` | Export connections to YAML |
 | `y` | Copy SSH command |
 | `?` | Show help |
 | `q` | Quit |
@@ -172,6 +174,24 @@ hop import --file ~/.ssh/config.d/work  # Import from custom path
 
 **Conflict handling:** If a connection ID already exists, the imported connection is renamed with `-imported` suffix (e.g., `myserver` → `myserver-imported`).
 
+### Exporting Connections
+
+Export a subset of connections to a YAML file for sharing, backup, or transferring to another machine.
+
+**From the dashboard:** Press `x` to open the export modal. Only currently filtered connections are shown — apply text or tag filters first to narrow the selection. Toggle items with Space, then press Enter to save.
+
+**From the CLI:**
+```bash
+hop export --all                          # Export all to stdout
+hop export --all -o backup.yaml           # Export all to a file
+hop export --project myapp -o myapp.yaml  # Export by project
+hop export --tag database                 # Export by tag
+hop export --env production               # Export by environment
+hop export --id web-1,web-2              # Export specific connections
+```
+
+At least one filter flag or `--all` is required. Filters combine with AND logic.
+
 ## CLI Commands
 
 ```bash
@@ -184,6 +204,9 @@ hop list --flat              # Flat list without grouping
 hop import                   # Import from ~/.ssh/config
 hop import --file <path>     # Import from custom path
 hop import --dry-run         # Preview without importing
+hop export --all             # Export all connections to stdout
+hop export --project <name>  # Export filtered connections
+hop export --tag <tag> -o f  # Export to file
 hop open <target...>         # Open multiple terminal tabs
 hop exec <target> "cmd"      # Execute command on multiple servers
 hop resolve <target>         # Test which connections a target matches
@@ -287,6 +310,7 @@ hop/
 ├── internal/
 │   ├── cmd/           # CLI commands (cobra)
 │   ├── config/        # Configuration loading/saving
+│   ├── export/        # Export logic
 │   ├── fuzzy/         # Fuzzy matching
 │   ├── picker/        # Connection picker (promptui)
 │   ├── ssh/           # SSH connection handling
