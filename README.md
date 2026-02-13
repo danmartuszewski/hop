@@ -113,15 +113,24 @@ groups:
 
 Launch with `hop` or `hop dashboard`.
 
+When you connect to a server from the dashboard (by pressing Enter), the SSH session starts, and **the dashboard automatically returns after the session ends**. This lets you quickly hop between servers without restarting the TUI each time.
+
+For one-shot connections that exit to your terminal, use:
+```bash
+hop <query>           # fuzzy match and connect
+hop connect <id>      # connect by exact ID
+```
+
 ### Keyboard Shortcuts
 
 | Key | Action |
 |-----|--------|
 | `↑/k` | Move up |
 | `↓/j` | Move down |
+| `PgUp/PgDn` | Move by page |
 | `g` | Go to top |
 | `G` | Go to bottom |
-| `/` | Filter connections |
+| `/` | Filter connections (supports multi-keyword AND search) |
 | `t` | Filter by tags |
 | `r` | Toggle sort by recent |
 | `Enter` | Connect to selected |
@@ -135,6 +144,17 @@ Launch with `hop` or `hop dashboard`.
 | `y` | Copy SSH command |
 | `?` | Show help |
 | `q` | Quit |
+
+### Filtering Connections
+
+Press `/` to filter connections by typing keywords. The filter supports **multi-keyword AND logic** - separate keywords with spaces to find connections matching all terms.
+
+**Examples:**
+- `prod` - matches connections containing "prod"
+- `prod web` - matches connections containing both "production" AND "web"
+- `kaf staging` - matches connections with both "kafka" AND "staging"
+
+The filter searches across connection IDs, hosts, projects, environments, and tags.
 
 ### Quick Add with Paste
 
