@@ -3,6 +3,7 @@ package tui
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"sort"
 	"strings"
 
@@ -12,6 +13,7 @@ import (
 	"github.com/danmartuszewski/hop/internal/config"
 	"github.com/danmartuszewski/hop/internal/export"
 	"github.com/danmartuszewski/hop/internal/fuzzy"
+	"github.com/danmartuszewski/hop/internal/ssh"
 )
 
 type viewState int
@@ -26,6 +28,10 @@ const (
 	viewImport
 	viewExport
 )
+
+type sshFinishedMsg struct {
+	err error
+}
 
 type listItem struct {
 	connection *config.Connection
@@ -47,7 +53,6 @@ type Model struct {
 	filtering    bool
 	width        int
 	height       int
-	selected     *config.Connection
 	quitting     bool
 	view         viewState
 	form         FormModel
@@ -352,6 +357,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m Model) updateList(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
+	case sshFinishedMsg:
+		if msg.err != nil {
+			m.statusMsg = fmt.Sprintf("SSH session ended with error: %v", msg.err)
+		}
+		return m, nil
 	case tea.MouseMsg:
 		return m.handleMouse(msg)
 	case tea.KeyMsg:
@@ -423,8 +433,16 @@ func (m Model) updateList(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		case "enter":
 			if conn := m.selectedConnection(); conn != nil {
-				m.selected = conn
-				return m, tea.Quit
+				// Record history before connecting
+				if m.history != nil {
+					m.history.RecordUsage(conn.ID)
+					_ = m.history.Save()
+				}
+				args := ssh.BuildCommand(conn, &ssh.ConnectOptions{})
+				c := exec.Command("ssh", args...)
+				return m, tea.ExecProcess(c, func(err error) tea.Msg {
+					return sshFinishedMsg{err: err}
+				})
 			}
 		case "a":
 			m.form = NewFormModel("Add Connection", nil)
@@ -1177,10 +1195,6 @@ func (m Model) renderTagPicker() string {
 	return b.String()
 }
 
-func (m Model) Selected() *config.Connection {
-	return m.selected
-}
-
 func sortedMapKeys[V any](m map[string]V) []string {
 	keys := make([]string, 0, len(m))
 	for k := range m {
@@ -1207,23 +1221,14 @@ func sortedMapKeys[V any](m map[string]V) []string {
 	return keys
 }
 
-func Run(cfg *config.Config, version string) (*config.Connection, error) {
+func Run(cfg *config.Config, version string) error {
 	m := NewModel(cfg, version)
 	p := tea.NewProgram(m, tea.WithAltScreen(), tea.WithMouseCellMotion())
 
-	finalModel, err := p.Run()
+	_, err := p.Run()
 	if err != nil {
-		return nil, fmt.Errorf("TUI error: %w", err)
+		return fmt.Errorf("TUI error: %w", err)
 	}
 
-	result := finalModel.(Model)
-	selected := result.Selected()
-
-	// Record usage in history
-	if selected != nil && result.history != nil {
-		result.history.RecordUsage(selected.ID)
-		_ = result.history.Save() // Ignore save errors - history is optional
-	}
-
-	return selected, nil
+	return nil
 }

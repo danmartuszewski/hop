@@ -518,17 +518,11 @@ func TestSelectConnection(t *testing.T) {
 	newModel, _ := m.Update(tea.KeyMsg{Type: tea.KeyDown})
 	m = newModel.(Model)
 
-	// Press enter to select
-	newModel, cmd := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
-	m = newModel.(Model)
+	// Press enter to select — should produce an exec command (SSH)
+	_, cmd := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
 
-	if m.selected == nil {
-		t.Error("expected a connection to be selected")
-	}
-
-	// Should quit after selection
 	if cmd == nil {
-		t.Error("expected quit command")
+		t.Error("expected exec command after pressing enter")
 	}
 }
 

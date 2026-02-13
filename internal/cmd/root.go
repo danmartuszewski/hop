@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/danmartuszewski/hop/internal/ssh"
 	"github.com/danmartuszewski/hop/internal/tui"
 	"github.com/spf13/cobra"
 )
@@ -71,20 +70,7 @@ func runDashboard() error {
 		return err
 	}
 
-	selected, err := tui.Run(cfg, Version)
-	if err != nil {
-		return err
-	}
-
-	if selected == nil {
-		return nil
-	}
-
-	if !quiet {
-		fmt.Fprintf(os.Stderr, "Connecting to %s (%s)...\n", selected.ID, selected.Host)
-	}
-
-	return ssh.Connect(selected, &ssh.ConnectOptions{})
+	return tui.Run(cfg, Version)
 }
 
 func init() {
