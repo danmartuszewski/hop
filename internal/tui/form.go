@@ -56,7 +56,7 @@ func NewFormModel(title string, conn *config.Connection) FormModel {
 		case fieldEnv:
 			// optional
 		case fieldTags:
-			t.Placeholder = "comma-separated"
+			// No placeholder - we'll show hint text instead
 		}
 
 		inputs[i] = t
@@ -99,6 +99,9 @@ func (m FormModel) Update(msg tea.Msg) (FormModel, tea.Cmd) {
 		switch msg.String() {
 		case "ctrl+c", "esc":
 			m.cancelled = true
+			return m, nil
+		case "ctrl+s":
+			m.submitted = true
 			return m, nil
 		case "tab", "down":
 			m.focused = (m.focused + 1) % fieldCount
@@ -159,6 +162,13 @@ func (m FormModel) View() string {
 
 		b.WriteString(style.Render(fmt.Sprintf("%-10s", label)))
 		b.WriteString(m.inputs[i].View())
+
+		// Add hint for Tags field
+		if formField(i) == fieldTags {
+			b.WriteString(" ")
+			b.WriteString(helpDescStyle.Render("(comma-separated)"))
+		}
+
 		b.WriteString("\n")
 	}
 
@@ -166,7 +176,8 @@ func (m FormModel) View() string {
 
 	// Help
 	help := helpKeyStyle.Render("tab") + " " + helpDescStyle.Render("next") + "  "
-	help += helpKeyStyle.Render("enter") + " " + helpDescStyle.Render("save") + "  "
+	help += helpKeyStyle.Render("enter") + " " + helpDescStyle.Render("next/save") + "  "
+	help += helpKeyStyle.Render("ctrl+s") + " " + helpDescStyle.Render("save") + "  "
 	help += helpKeyStyle.Render("esc") + " " + helpDescStyle.Render("cancel")
 	b.WriteString(help)
 
