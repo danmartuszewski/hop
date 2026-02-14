@@ -56,6 +56,9 @@ var (
 	userStyle = lipgloss.NewStyle().
 			Foreground(successColor)
 
+	portStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("240"))
+
 	// Footer
 	footerStyle = lipgloss.NewStyle().
 			BorderStyle(lipgloss.NormalBorder()).

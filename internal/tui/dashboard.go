@@ -1018,7 +1018,7 @@ func (m Model) renderListContent() string {
 		}
 		portStr := ""
 		if conn.Port != 0 && conn.Port != 22 {
-			portStr = "  " + hostStyle.Render(fmt.Sprintf(":%d", conn.Port))
+			portStr = portStyle.Render(fmt.Sprintf(":%d", conn.Port))
 		}
 
 		// Calculate indent based on grouping
