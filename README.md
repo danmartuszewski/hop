@@ -53,6 +53,8 @@ git clone https://github.com/danmartuszewski/hop.git && cd hop && make build
 - **Jump hosts** - ProxyJump support for bastion servers
 - **Zero dependencies** - Single binary, works anywhere
 
+> **See all features in action:** [Demo recordings](demo/DEMOS.md)
+
 ## Coming Soon: Raycast Extension
 
 Launch connections directly from Raycast. Fuzzy search, tags, environments - all at your fingertips.
