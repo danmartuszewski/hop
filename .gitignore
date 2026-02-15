@@ -1,6 +1,7 @@
 # Build artifacts
 hop
 bin/
+dist/
 *.exe
 *.dll
 *.so

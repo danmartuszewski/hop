@@ -31,11 +31,19 @@ hop                              # launch the TUI, manage everything
 
 ## Install
 
+### Homebrew (macOS/Linux)
+
+```bash
+brew install danmartuszewski/hop/hop
+```
+
+### Go
+
 ```bash
 go install github.com/danmartuszewski/hop/cmd/hop@latest
 ```
 
-Or build from source:
+### From source
 
 ```bash
 git clone https://github.com/danmartuszewski/hop.git && cd hop && make build
