@@ -44,7 +44,7 @@ homebrew_casks:
       - hop
     repository:
       owner: danmartuszewski
-      name: homebrew-hop
+      name: homebrew-tap
       token: "{{ .Env.HOMEBREW_TAP_TOKEN }}"
     homepage: https://github.com/danmartuszewski/hop
     description: "Fast, elegant SSH connection manager"
