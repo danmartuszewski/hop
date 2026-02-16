@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.1](https://github.com/danmartuszewski/hop/compare/v1.0.0...v1.0.1) (2026-02-16)
+
+
+### Bug Fixes
+
+* use PAT in release-please to trigger release workflow ([1b7a31e](https://github.com/danmartuszewski/hop/commit/1b7a31ea7116227cba03c59e5166a3169a0687aa))
+
 ## 1.0.0 (2026-02-15)
 
 
