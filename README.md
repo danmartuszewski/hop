@@ -34,7 +34,7 @@ hop                              # launch the TUI, manage everything
 ### Homebrew (macOS/Linux)
 
 ```bash
-brew install danmartuszewski/hop/hop
+brew install danmartuszewski/tap/hop
 ```
 
 ### Go
