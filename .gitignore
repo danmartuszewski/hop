@@ -26,5 +26,8 @@ vendor/
 .DS_Store
 Thumbs.db
 
+# MCP Registry
+.mcpregistry_*
+
 # Claude Code
 .claude/*.local
