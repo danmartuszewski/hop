@@ -1,0 +1,11 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-07-09/server.schema.json",
+  "name": "io.github.danmartuszewski/hop",
+  "description": "SSH connection manager - let AI assistants search, resolve, and execute commands across your servers by project, environment, or tag.",
+  "repository": {
+    "url": "https://github.com/danmartuszewski/hop",
+    "source": "github"
+  },
+  "version": "1.1.0",
+  "packages": []
+}
