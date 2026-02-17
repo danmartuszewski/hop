@@ -41,6 +41,12 @@ type ExecResult struct {
 
 // Execute runs a command on multiple connections in parallel.
 func Execute(connections []config.Connection, opts *ExecOptions) []ExecResult {
+	return ExecuteContext(context.Background(), connections, opts)
+}
+
+// ExecuteContext runs a command on multiple connections in parallel,
+// using the provided context for cancellation.
+func ExecuteContext(parentCtx context.Context, connections []config.Connection, opts *ExecOptions) []ExecResult {
 	if opts == nil {
 		opts = &ExecOptions{}
 	}
@@ -58,7 +64,7 @@ func Execute(connections []config.Connection, opts *ExecOptions) []ExecResult {
 	}, len(connections))
 
 	// Create context for timeout and cancellation
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(parentCtx)
 	defer cancel()
 
 	// Semaphore for limiting parallelism

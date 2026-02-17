@@ -38,6 +38,12 @@ Short demo recordings showcasing hop's features. Each demo is a self-contained G
 
 ![Search](hop-search.gif)
 
+## MCP Server
+
+**Let AI manage your servers.** Claude Code connects to hop's MCP server, finds servers by project, and checks disk space across them — all from a natural language request.
+
+![MCP](../assets/mcp.png)
+
 ---
 
 ## Regenerating

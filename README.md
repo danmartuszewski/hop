@@ -59,6 +59,7 @@ git clone https://github.com/danmartuszewski/hop.git && cd hop && make build
 - **Multi-exec** - Run commands across multiple servers at once
 - **Groups & tags** - Organize by project, environment, or custom tags
 - **Jump hosts** - ProxyJump support for bastion servers
+- **MCP server** - Let AI assistants manage your servers — search connections, run commands, check status across projects
 - **Zero dependencies** - Single binary, works anywhere
 
 > **See all features in action:** [Demo recordings](demo/DEMOS.md)
@@ -240,6 +241,8 @@ hop export --tag <tag> -o f  # Export to file
 hop open <target...>         # Open multiple terminal tabs
 hop exec <target> "cmd"      # Execute command on multiple servers
 hop resolve <target>         # Test which connections a target matches
+hop mcp                      # Start MCP server (read-only)
+hop mcp --allow-exec         # Start MCP server with remote exec
 hop version                  # Show version
 ```
 
@@ -283,6 +286,91 @@ hop open myapp-prod -- "htop"          # with initial command
 # List connections
 hop list --flat
 ```
+
+## MCP Server (AI Assistant Integration)
+
+hop includes a built-in [Model Context Protocol](https://modelcontextprotocol.io/) server that lets AI assistants like Claude Code and Codex manage your servers directly. Ask your assistant to check disk space across production, restart a service on staging, or find which servers belong to a project — it discovers your connections, resolves targets, and executes commands through hop.
+
+<p align="center">
+  <img src="assets/mcp.png" alt="Claude Code managing servers through hop's MCP server">
+</p>
+
+### Setup
+
+**Claude Code:**
+```bash
+claude mcp add hop -- hop mcp
+```
+
+**Codex CLI:**
+```bash
+codex mcp add hop -- hop mcp
+```
+
+**Claude Desktop** — add to your config (`~/Library/Application Support/Claude/claude_desktop_config.json`):
+```json
+{
+  "mcpServers": {
+    "hop": {
+      "command": "hop",
+      "args": ["mcp"]
+    }
+  }
+}
+```
+
+**Codex** — add to `~/.codex/config.toml`:
+```toml
+[mcp_servers.hop]
+command = "hop"
+args = ["mcp"]
+```
+
+Or generate the Claude Desktop config automatically:
+```bash
+hop mcp --print-client-config                  # read-only
+hop mcp --print-client-config --allow-exec     # with remote exec enabled
+```
+
+### Tools
+
+By default, only read-only tools are exposed:
+
+| Tool | Description |
+|------|-------------|
+| `list_connections` | List connections, filter by project/env/tag |
+| `search_connections` | Fuzzy search across all connections |
+| `get_connection` | Get details for a specific connection |
+| `resolve_target` | Preview how a target pattern resolves |
+| `list_groups` | List all named groups |
+| `get_history` | Connection usage history |
+| `build_ssh_command` | Build the full SSH command string |
+
+To enable remote command execution, start with `--allow-exec`:
+
+```bash
+claude mcp add hop -- hop mcp --allow-exec
+codex mcp add hop -- hop mcp --allow-exec
+```
+
+This adds the `exec_command` tool, which runs shell commands on matched servers with output limits (64KB/host, 50 hosts max).
+
+### Resources
+
+The server also exposes browsable resources:
+
+| URI | Description |
+|-----|-------------|
+| `hop://config` | Config summary (counts, projects, environments) |
+| `hop://connections` | All connections |
+| `hop://connections/{id}` | Individual connection details |
+| `hop://groups` | All groups and members |
+
+### Security
+
+- Identity files (SSH key paths) are never exposed through MCP
+- Remote execution is disabled by default and requires explicit `--allow-exec`
+- All logging goes to stderr to keep the JSON-RPC transport clean
 
 ## Shell Completions
 
@@ -342,7 +430,9 @@ hop/
 │   ├── config/        # Configuration loading/saving
 │   ├── export/        # Export logic
 │   ├── fuzzy/         # Fuzzy matching
+│   ├── mcp/           # MCP server (tools, resources, types)
 │   ├── picker/        # Connection picker (promptui)
+│   ├── resolve/       # Target resolution logic
 │   ├── ssh/           # SSH connection handling
 │   ├── sshconfig/     # SSH config parsing
 │   └── tui/           # TUI dashboard (bubbletea)

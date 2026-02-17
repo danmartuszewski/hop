@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/danmartuszewski/hop/internal/fuzzy"
+	"github.com/danmartuszewski/hop/internal/resolve"
 	"github.com/danmartuszewski/hop/internal/ssh"
 	"github.com/spf13/cobra"
 )
@@ -69,7 +70,7 @@ func runExec(cmd *cobra.Command, args []string) error {
 	}
 
 	// Resolve connections
-	result, err := resolveTarget(groupOrPattern, cfg)
+	result, err := resolve.ResolveTarget(groupOrPattern, cfg)
 	if err != nil {
 		return err
 	}
