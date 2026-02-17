@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.1](https://github.com/danmartuszewski/hop/compare/v1.1.0...v1.1.1) (2026-02-17)
+
+
+### Bug Fixes
+
+* shorten server.json description to fit 100 char limit ([132d830](https://github.com/danmartuszewski/hop/commit/132d8302425977440868bc045d2488a04c4ebc09))
+
 ## [1.1.0](https://github.com/danmartuszewski/hop/compare/v1.0.1...v1.1.0) (2026-02-17)
 
 
