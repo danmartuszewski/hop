@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.0](https://github.com/danmartuszewski/hop/compare/v1.0.1...v1.1.0) (2026-02-17)
+
+
+### Features
+
+* add MCP server for AI assistant integration ([93f7684](https://github.com/danmartuszewski/hop/commit/93f768455f5ae1b616c929812529680a6f6aa390))
+
 ## [1.0.1](https://github.com/danmartuszewski/hop/compare/v1.0.0...v1.0.1) (2026-02-16)
 
 
