@@ -44,6 +44,12 @@ Short demo recordings showcasing hop's features. Each demo is a self-contained G
 
 ![MCP](../assets/mcp.png)
 
+### Non-interactive
+
+**Query and execute from the command line.** Use `claude -p` to discover servers and run commands without entering an interactive session.
+
+![MCP non-interactive](mcp-non-interactive.gif)
+
 ---
 
 ## Regenerating

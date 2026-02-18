@@ -57,3 +57,10 @@ ssh -i /tmp/hop-demo/demo_key -o StrictHostKeyChecking=no -p 2222 deploy@127.0.0
 # Cleanup when done
 docker rm -f hop-demo-ssh
 ```
+
+## MCP
+
+| File | Description |
+|------|-------------|
+| `mcp.mp4` | Interactive Claude Code session with hop MCP server |
+| `mcp-non-interactive.gif` | Non-interactive `claude -p` demo querying and executing on servers |
