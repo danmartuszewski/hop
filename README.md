@@ -64,9 +64,11 @@ git clone https://github.com/danmartuszewski/hop.git && cd hop && make build
 
 > **See all features in action:** [Demo recordings](demo/DEMOS.md)
 
-## Coming Soon: Raycast Extension
+## Raycast Extension
 
 Launch connections directly from Raycast. Fuzzy search, tags, environments - all at your fingertips.
+
+[Install from Raycast Store](https://www.raycast.com/danmartuszewski/hop)
 
 <p align="center">
   <img src="assets/hop1.png" width="32%">
