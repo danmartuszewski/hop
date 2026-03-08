@@ -58,6 +58,28 @@ connections:
     env: prod
     tags: [logging, elk]
 
+  # Cloud services (reachable - SSH port open)
+  - id: cloud-github
+    host: github.com
+    user: git
+    project: cloud
+    env: prod
+    tags: [git, cloud]
+
+  - id: cloud-gitlab
+    host: gitlab.com
+    user: git
+    project: cloud
+    env: prod
+    tags: [git, cloud]
+
+  - id: cloud-bitbucket
+    host: bitbucket.org
+    user: git
+    project: cloud
+    env: prod
+    tags: [git, cloud]
+
   # Personal servers
   - id: homelab
     host: 192.168.1.100
