@@ -16,8 +16,9 @@ type Config struct {
 }
 
 type Defaults struct {
-	User string `yaml:"user,omitempty"`
-	Port int    `yaml:"port,omitempty"`
+	User    string `yaml:"user,omitempty"`
+	Port    int    `yaml:"port,omitempty"`
+	UseMosh bool   `yaml:"use_mosh,omitempty"`
 }
 
 type Connection struct {
@@ -30,6 +31,7 @@ type Connection struct {
 	IdentityFile string            `yaml:"identity_file,omitempty"`
 	ProxyJump    string            `yaml:"proxy_jump,omitempty"`
 	ForwardAgent bool              `yaml:"forward_agent,omitempty"`
+	UseMosh      *bool             `yaml:"use_mosh,omitempty"`
 	Tags         []string          `yaml:"tags,omitempty"`
 	Options      map[string]string `yaml:"options,omitempty"`
 }
@@ -87,7 +89,24 @@ func (c *Config) applyDefaults() {
 		if conn.Port == 0 {
 			conn.Port = c.Defaults.Port
 		}
+		if conn.UseMosh == nil && c.Defaults.UseMosh {
+			v := true
+			conn.UseMosh = &v
+		}
 	}
+}
+
+// Mosh returns whether mosh is enabled for this connection.
+func (c *Connection) Mosh() bool {
+	if c.UseMosh == nil {
+		return false
+	}
+	return *c.UseMosh
+}
+
+// SetMosh sets the mosh flag on a connection.
+func (c *Connection) SetMosh(v bool) {
+	c.UseMosh = &v
 }
 
 func (c *Connection) EffectiveUser() string {

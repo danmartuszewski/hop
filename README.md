@@ -60,6 +60,7 @@ git clone https://github.com/danmartuszewski/hop.git && cd hop && make build
 - **Groups & tags** - Organize by project, environment, or custom tags
 - **Jump hosts** - ProxyJump support for bastion servers
 - **MCP server** - Let AI assistants manage your servers — search connections, run commands, check status across projects
+- **Mosh support** - Use [mosh](https://mosh.org/) instead of SSH for roaming and unreliable connections
 - **Zero dependencies** - Single binary, works anywhere
 
 > **See all features in action:** [Demo recordings](demo/DEMOS.md)
@@ -86,6 +87,7 @@ version: 1
 defaults:
   user: admin
   port: 22
+  # use_mosh: true             # Uncomment to use mosh for all connections
 
 connections:
   - id: prod-web
@@ -115,12 +117,57 @@ connections:
     proxy_jump: bastion          # Connect via jump host
     forward_agent: true          # Forward SSH agent
 
+  - id: remote-dev
+    host: dev.example.com
+    user: dan
+    use_mosh: true               # Use mosh instead of SSH
+
 groups:
   production: [prod-web, prod-db]
   web-servers: [prod-web, staging]
 ```
 
 > **Security note:** `forward_agent: true` exposes your SSH keys to anyone with root access on the remote server. Only enable this for servers you fully trust. Consider using `proxy_jump` instead when you just need to reach internal hosts through a bastion.
+
+### Mosh Support
+
+[Mosh](https://mosh.org/) (mobile shell) is useful for connections over unreliable networks — it handles roaming, intermittent connectivity, and high latency gracefully.
+
+**Global default** — enable mosh for all connections:
+
+```yaml
+defaults:
+  use_mosh: true
+
+connections:
+  - id: remote-dev
+    host: dev.example.com
+
+  - id: legacy-server
+    host: old.example.com
+    use_mosh: false              # Override: use SSH for this one
+```
+
+**Per-connection** — enable mosh for specific connections:
+
+```yaml
+connections:
+  - id: remote-dev
+    host: dev.example.com
+    user: dan
+    use_mosh: true
+```
+
+**One-off** — use the `--mosh` flag without changing config:
+
+```bash
+hop connect myserver --mosh
+hop myserver --mosh
+```
+
+Per-connection `use_mosh: false` overrides the global default. SSH options (port, identity file, proxy jump, agent forwarding) are automatically passed to mosh via its `--ssh` flag. Mosh requires both the local `mosh-client` and `mosh-server` on the remote host.
+
+> **Note:** `hop exec` always uses SSH regardless of `use_mosh`, since mosh is designed for interactive sessions.
 
 ## TUI Dashboard
 
@@ -397,6 +444,7 @@ hop completion fish > ~/.config/fish/completions/hop.fish
 -v, --verbose          # Verbose output
 -q, --quiet            # Suppress non-essential output
     --dry-run          # Print SSH command without executing
+    --mosh             # Use mosh instead of SSH for this connection
 ```
 
 ## Building

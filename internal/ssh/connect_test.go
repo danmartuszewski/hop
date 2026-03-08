@@ -10,6 +10,8 @@ import (
 	"github.com/danmartuszewski/hop/internal/config"
 )
 
+func boolPtr(v bool) *bool { return &v }
+
 func TestBuildCommand(t *testing.T) {
 	tests := []struct {
 		name string
@@ -305,6 +307,227 @@ func TestWrapSSHError(t *testing.T) {
 				t.Errorf("error message %q does not contain %q", errStr, tt.wantSubstr)
 			}
 		})
+	}
+}
+
+func TestBuildMoshCommand(t *testing.T) {
+	tests := []struct {
+		name       string
+		conn       *config.Connection
+		opts       *ConnectOptions
+		wantBinary string
+		wantArgs   []string
+	}{
+		{
+			name: "basic mosh connection",
+			conn: &config.Connection{
+				Host: "example.com",
+				User: "admin",
+			},
+			opts:       nil,
+			wantBinary: "mosh",
+			wantArgs:   []string{"admin@example.com"},
+		},
+		{
+			name: "mosh with custom port",
+			conn: &config.Connection{
+				Host: "example.com",
+				User: "admin",
+				Port: 2222,
+			},
+			opts:       nil,
+			wantBinary: "mosh",
+			wantArgs:   []string{"--ssh=ssh -p 2222", "admin@example.com"},
+		},
+		{
+			name: "mosh with identity file",
+			conn: &config.Connection{
+				Host:         "example.com",
+				User:         "deploy",
+				IdentityFile: "/path/to/key.pem",
+			},
+			opts:       nil,
+			wantBinary: "mosh",
+			wantArgs:   []string{"--ssh=ssh -i /path/to/key.pem", "deploy@example.com"},
+		},
+		{
+			name: "mosh with proxy jump",
+			conn: &config.Connection{
+				Host:      "internal.example.com",
+				User:      "admin",
+				ProxyJump: "bastion.example.com",
+			},
+			opts:       nil,
+			wantBinary: "mosh",
+			wantArgs:   []string{"--ssh=ssh -J bastion.example.com", "admin@internal.example.com"},
+		},
+		{
+			name: "mosh with forward agent",
+			conn: &config.Connection{
+				Host:         "example.com",
+				User:         "admin",
+				ForwardAgent: true,
+			},
+			opts:       nil,
+			wantBinary: "mosh",
+			wantArgs:   []string{"--ssh=ssh -A", "admin@example.com"},
+		},
+		{
+			name: "mosh with multiple SSH options",
+			conn: &config.Connection{
+				Host:         "10.0.1.50",
+				User:         "deploy",
+				Port:         2222,
+				IdentityFile: "/keys/server.pem",
+				ProxyJump:    "bastion",
+				ForwardAgent: true,
+				Options: map[string]string{
+					"ServerAliveInterval": "60",
+				},
+			},
+			opts:       nil,
+			wantBinary: "mosh",
+			wantArgs:   []string{"--ssh=ssh -p 2222 -i /keys/server.pem -J bastion -A -o ServerAliveInterval=60", "deploy@10.0.1.50"},
+		},
+		{
+			name: "mosh with remote command",
+			conn: &config.Connection{
+				Host: "example.com",
+				User: "admin",
+			},
+			opts:       &ConnectOptions{Command: "tmux attach"},
+			wantBinary: "mosh",
+			wantArgs:   []string{"admin@example.com", "--", "tmux attach"},
+		},
+		{
+			name: "mosh ignores ForceTTY",
+			conn: &config.Connection{
+				Host: "example.com",
+				User: "admin",
+			},
+			opts:       &ConnectOptions{ForceTTY: true},
+			wantBinary: "mosh",
+			wantArgs:   []string{"admin@example.com"},
+		},
+		{
+			name: "mosh with extra args",
+			conn: &config.Connection{
+				Host: "example.com",
+				User: "admin",
+			},
+			opts:       &ConnectOptions{ExtraArgs: []string{"--predict=experimental"}},
+			wantBinary: "mosh",
+			wantArgs:   []string{"--predict=experimental", "admin@example.com"},
+		},
+		{
+			name: "mosh default port 22 not included in ssh options",
+			conn: &config.Connection{
+				Host: "example.com",
+				User: "admin",
+				Port: 22,
+			},
+			opts:       nil,
+			wantBinary: "mosh",
+			wantArgs:   []string{"admin@example.com"},
+		},
+		{
+			name: "mosh no user uses system user",
+			conn: &config.Connection{
+				Host: "example.com",
+			},
+			opts:       nil,
+			wantBinary: "mosh",
+			wantArgs: func() []string {
+				if user := os.Getenv("USER"); user != "" {
+					return []string{user + "@example.com"}
+				}
+				return []string{"example.com"}
+			}(),
+		},
+		{
+			name: "mosh with ssh options sorted deterministically",
+			conn: &config.Connection{
+				Host: "example.com",
+				User: "admin",
+				Options: map[string]string{
+					"StrictHostKeyChecking": "no",
+					"ServerAliveInterval":   "60",
+				},
+			},
+			opts:       nil,
+			wantBinary: "mosh",
+			wantArgs:   []string{"--ssh=ssh -o ServerAliveInterval=60 -o StrictHostKeyChecking=no", "admin@example.com"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gotBinary, gotArgs := BuildMoshCommand(tt.conn, tt.opts)
+			if gotBinary != tt.wantBinary {
+				t.Errorf("BuildMoshCommand() binary = %q, want %q", gotBinary, tt.wantBinary)
+			}
+			if !reflect.DeepEqual(gotArgs, tt.wantArgs) {
+				t.Errorf("BuildMoshCommand() args = %v, want %v", gotArgs, tt.wantArgs)
+			}
+		})
+	}
+}
+
+func TestBuildCommandString_SSHUnchanged(t *testing.T) {
+	// Ensure SSH connections still produce "ssh ..." prefix
+	conn := &config.Connection{
+		Host: "example.com",
+		User: "admin",
+		Port: 2222,
+	}
+	got := BuildCommandString(conn, nil)
+	want := "ssh -p 2222 admin@example.com"
+	if got != want {
+		t.Errorf("BuildCommandString() = %q, want %q", got, want)
+	}
+}
+
+func TestBuildCommandString_MoshDispatch(t *testing.T) {
+	conn := &config.Connection{
+		Host:    "example.com",
+		User:    "admin",
+		UseMosh: boolPtr(true),
+	}
+	got := BuildCommandString(conn, nil)
+	if !strings.HasPrefix(got, "mosh ") {
+		t.Errorf("BuildCommandString() with UseMosh = %q, want prefix 'mosh '", got)
+	}
+	want := "mosh admin@example.com"
+	if got != want {
+		t.Errorf("BuildCommandString() = %q, want %q", got, want)
+	}
+}
+
+func TestBuildCommandString_MoshWithPort(t *testing.T) {
+	conn := &config.Connection{
+		Host:    "example.com",
+		User:    "admin",
+		Port:    2222,
+		UseMosh: boolPtr(true),
+	}
+	got := BuildCommandString(conn, nil)
+	want := `mosh "--ssh=ssh -p 2222" admin@example.com`
+	if got != want {
+		t.Errorf("BuildCommandString() = %q, want %q", got, want)
+	}
+}
+
+func TestBuildCommandString_MoshWithCommand(t *testing.T) {
+	conn := &config.Connection{
+		Host:    "example.com",
+		User:    "admin",
+		UseMosh: boolPtr(true),
+	}
+	opts := &ConnectOptions{Command: "tmux attach"}
+	got := BuildCommandString(conn, opts)
+	want := `mosh admin@example.com -- "tmux attach"`
+	if got != want {
+		t.Errorf("BuildCommandString() = %q, want %q", got, want)
 	}
 }
 

@@ -1,0 +1,9 @@
+services:
+  sshd:
+    build:
+      context: .
+      dockerfile: Dockerfile.sshd
+    ports:
+      - "2222:22"
+      - "60001-60010:60001-60010/udp"
+    container_name: hop-test-server

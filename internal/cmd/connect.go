@@ -15,6 +15,7 @@ import (
 var (
 	dryRun   bool
 	forceTTY bool
+	useMosh  bool
 )
 
 var connectCmd = &cobra.Command{
@@ -38,6 +39,7 @@ func init() {
 	for _, cmd := range []*cobra.Command{rootCmd, connectCmd} {
 		cmd.Flags().BoolVar(&dryRun, "dry-run", false, "print SSH command without executing")
 		cmd.Flags().BoolVarP(&forceTTY, "t", "t", false, "force TTY allocation")
+		cmd.Flags().BoolVar(&useMosh, "mosh", false, "use mosh instead of ssh for this connection")
 	}
 }
 
@@ -101,6 +103,10 @@ func runQuickConnect(cmd *cobra.Command, args []string) error {
 		conn = selected
 	}
 
+	if useMosh {
+		conn.SetMosh(true)
+	}
+
 	opts := &ssh.ConnectOptions{
 		DryRun:   dryRun,
 		ForceTTY: forceTTY,
@@ -122,6 +128,10 @@ func connectToServer(conn *config.Connection, cmd *cobra.Command) error {
 			remoteCmd = strings.Join(args[i+1:], " ")
 			break
 		}
+	}
+
+	if useMosh {
+		conn.SetMosh(true)
 	}
 
 	opts := &ssh.ConnectOptions{

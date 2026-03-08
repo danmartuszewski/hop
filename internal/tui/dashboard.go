@@ -438,8 +438,15 @@ func (m Model) updateList(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.history.RecordUsage(conn.ID)
 					_ = m.history.Save()
 				}
-				args := ssh.BuildCommand(conn, &ssh.ConnectOptions{})
-				c := exec.Command("ssh", args...)
+				var binary string
+				var args []string
+				if conn.Mosh() {
+					binary, args = ssh.BuildMoshCommand(conn, &ssh.ConnectOptions{})
+				} else {
+					binary = "ssh"
+					args = ssh.BuildCommand(conn, &ssh.ConnectOptions{})
+				}
+				c := exec.Command(binary, args...)
 				return m, tea.ExecProcess(c, func(err error) tea.Msg {
 					return sshFinishedMsg{err: err}
 				})

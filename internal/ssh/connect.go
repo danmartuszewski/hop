@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"sort"
 	"strings"
 
 	"github.com/danmartuszewski/hop/internal/config"
@@ -62,7 +63,74 @@ func BuildCommand(conn *config.Connection, opts *ConnectOptions) []string {
 	return args
 }
 
+// BuildMoshCommand builds the mosh command arguments for a connection.
+// It returns the binary name ("mosh") and the argument list.
+func BuildMoshCommand(conn *config.Connection, opts *ConnectOptions) (string, []string) {
+	var moshArgs []string
+
+	// Build inner SSH options for the --ssh flag
+	var sshParts []string
+	sshParts = append(sshParts, "ssh")
+
+	if conn.Port != 0 && conn.Port != 22 {
+		sshParts = append(sshParts, "-p", fmt.Sprintf("%d", conn.Port))
+	}
+
+	if conn.IdentityFile != "" {
+		identityFile := expandPath(conn.IdentityFile)
+		sshParts = append(sshParts, "-i", identityFile)
+	}
+
+	if conn.ProxyJump != "" {
+		sshParts = append(sshParts, "-J", conn.ProxyJump)
+	}
+
+	if conn.ForwardAgent {
+		sshParts = append(sshParts, "-A")
+	}
+
+	// Sort option keys for deterministic output
+	if len(conn.Options) > 0 {
+		keys := make([]string, 0, len(conn.Options))
+		for k := range conn.Options {
+			keys = append(keys, k)
+		}
+		sort.Strings(keys)
+		for _, key := range keys {
+			sshParts = append(sshParts, "-o", fmt.Sprintf("%s=%s", key, conn.Options[key]))
+		}
+	}
+
+	// Only add --ssh if we have non-default SSH options
+	if len(sshParts) > 1 {
+		moshArgs = append(moshArgs, fmt.Sprintf("--ssh=%s", strings.Join(sshParts, " ")))
+	}
+
+	// Extra args go to mosh
+	if opts != nil {
+		moshArgs = append(moshArgs, opts.ExtraArgs...)
+	}
+
+	// Destination
+	user := conn.EffectiveUser()
+	destination := conn.Host
+	if user != "" {
+		destination = user + "@" + conn.Host
+	}
+	moshArgs = append(moshArgs, destination)
+
+	// Remote command (mosh uses -- to pass server command)
+	if opts != nil && opts.Command != "" {
+		moshArgs = append(moshArgs, "--", opts.Command)
+	}
+
+	return "mosh", moshArgs
+}
+
 func BuildCommandString(conn *config.Connection, opts *ConnectOptions) string {
+	if conn.Mosh() {
+		return buildMoshCommandString(conn, opts)
+	}
 	args := BuildCommand(conn, opts)
 	quotedArgs := make([]string, len(args))
 	for i, arg := range args {
@@ -75,15 +143,35 @@ func BuildCommandString(conn *config.Connection, opts *ConnectOptions) string {
 	return "ssh " + strings.Join(quotedArgs, " ")
 }
 
-func Connect(conn *config.Connection, opts *ConnectOptions) error {
-	args := BuildCommand(conn, opts)
+func buildMoshCommandString(conn *config.Connection, opts *ConnectOptions) string {
+	binary, args := BuildMoshCommand(conn, opts)
+	quotedArgs := make([]string, len(args))
+	for i, arg := range args {
+		if strings.ContainsAny(arg, " \t\n\"'") {
+			quotedArgs[i] = fmt.Sprintf("%q", arg)
+		} else {
+			quotedArgs[i] = arg
+		}
+	}
+	return binary + " " + strings.Join(quotedArgs, " ")
+}
 
+func Connect(conn *config.Connection, opts *ConnectOptions) error {
 	if opts != nil && opts.DryRun {
 		fmt.Println(BuildCommandString(conn, opts))
 		return nil
 	}
 
-	cmd := exec.Command("ssh", args...)
+	var binary string
+	var args []string
+	if conn.Mosh() {
+		binary, args = BuildMoshCommand(conn, opts)
+	} else {
+		binary = "ssh"
+		args = BuildCommand(conn, opts)
+	}
+
+	cmd := exec.Command(binary, args...)
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr

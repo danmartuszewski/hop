@@ -1,0 +1,21 @@
+version: 1
+
+connections:
+  - id: test-ssh
+    host: localhost
+    user: testuser
+    port: 2222
+    identity_file: ./test/docker/id_test
+    options:
+      StrictHostKeyChecking: "no"
+      UserKnownHostsFile: /dev/null
+
+  - id: test-mosh
+    host: localhost
+    user: testuser
+    port: 2222
+    identity_file: ./test/docker/id_test
+    use_mosh: true
+    options:
+      StrictHostKeyChecking: "no"
+      UserKnownHostsFile: /dev/null

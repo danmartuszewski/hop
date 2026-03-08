@@ -7,6 +7,8 @@ import (
 	"testing"
 )
 
+func boolPtr(v bool) *bool { return &v }
+
 func TestLoad(t *testing.T) {
 	tmpDir := t.TempDir()
 	configPath := filepath.Join(tmpDir, "config.yaml")
@@ -105,6 +107,147 @@ connections:
 		if strings.Contains(output, field) {
 			t.Errorf("saved config should not contain %q when field was not set, got:\n%s", field, output)
 		}
+	}
+}
+
+func TestLoadWithUseMosh(t *testing.T) {
+	tmpDir := t.TempDir()
+	configPath := filepath.Join(tmpDir, "config.yaml")
+
+	content := `version: 1
+connections:
+  - id: mosh-server
+    host: example.com
+    user: admin
+    use_mosh: true
+
+  - id: ssh-server
+    host: other.example.com
+    user: admin
+`
+	if err := os.WriteFile(configPath, []byte(content), 0644); err != nil {
+		t.Fatalf("failed to write test config: %v", err)
+	}
+
+	cfg, err := Load(configPath)
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+
+	if !cfg.Connections[0].Mosh() {
+		t.Error("Connections[0].Mosh() = false, want true")
+	}
+	if cfg.Connections[1].Mosh() {
+		t.Error("Connections[1].Mosh() = true, want false")
+	}
+}
+
+func TestSaveOmitsUseMoshWhenFalse(t *testing.T) {
+	tmpDir := t.TempDir()
+	configPath := filepath.Join(tmpDir, "config.yaml")
+
+	cfg := &Config{
+		Version: 1,
+		Connections: []Connection{
+			{ID: "server1", Host: "example.com", Port: 22},
+		},
+	}
+
+	if err := cfg.Save(configPath); err != nil {
+		t.Fatalf("Save() error = %v", err)
+	}
+
+	saved, err := os.ReadFile(configPath)
+	if err != nil {
+		t.Fatalf("failed to read saved config: %v", err)
+	}
+
+	if strings.Contains(string(saved), "use_mosh") {
+		t.Errorf("saved config should not contain 'use_mosh' when false, got:\n%s", string(saved))
+	}
+}
+
+func TestSaveIncludesUseMoshWhenTrue(t *testing.T) {
+	tmpDir := t.TempDir()
+	configPath := filepath.Join(tmpDir, "config.yaml")
+
+	cfg := &Config{
+		Version: 1,
+		Connections: []Connection{
+			{ID: "server1", Host: "example.com", Port: 22, UseMosh: boolPtr(true)},
+		},
+	}
+
+	if err := cfg.Save(configPath); err != nil {
+		t.Fatalf("Save() error = %v", err)
+	}
+
+	saved, err := os.ReadFile(configPath)
+	if err != nil {
+		t.Fatalf("failed to read saved config: %v", err)
+	}
+
+	if !strings.Contains(string(saved), "use_mosh: true") {
+		t.Errorf("saved config should contain 'use_mosh: true', got:\n%s", string(saved))
+	}
+}
+
+func TestDefaultsUseMoshApplied(t *testing.T) {
+	tmpDir := t.TempDir()
+	configPath := filepath.Join(tmpDir, "config.yaml")
+
+	content := `version: 1
+defaults:
+  use_mosh: true
+
+connections:
+  - id: inherits-mosh
+    host: example.com
+
+  - id: overrides-mosh
+    host: other.example.com
+    use_mosh: false
+`
+	if err := os.WriteFile(configPath, []byte(content), 0644); err != nil {
+		t.Fatalf("failed to write test config: %v", err)
+	}
+
+	cfg, err := Load(configPath)
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+
+	// Connection without use_mosh should inherit the global default
+	if !cfg.Connections[0].Mosh() {
+		t.Error("Connections[0].Mosh() = false, want true (inherited from defaults)")
+	}
+
+	// Connection with explicit use_mosh: false should override the default
+	if cfg.Connections[1].Mosh() {
+		t.Error("Connections[1].Mosh() = true, want false (explicit override)")
+	}
+}
+
+func TestDefaultsUseMoshNotAppliedWhenFalse(t *testing.T) {
+	tmpDir := t.TempDir()
+	configPath := filepath.Join(tmpDir, "config.yaml")
+
+	content := `version: 1
+connections:
+  - id: server1
+    host: example.com
+`
+	if err := os.WriteFile(configPath, []byte(content), 0644); err != nil {
+		t.Fatalf("failed to write test config: %v", err)
+	}
+
+	cfg, err := Load(configPath)
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+
+	if cfg.Connections[0].Mosh() {
+		t.Error("Connections[0].Mosh() = true, want false (no default set)")
 	}
 }
 

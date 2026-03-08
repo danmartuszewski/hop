@@ -1,0 +1,27 @@
+FROM alpine:3.21
+
+RUN apk add --no-cache \
+    openssh-server \
+    mosh \
+    bash
+
+# Configure SSH
+RUN ssh-keygen -A
+RUN sed -i 's/#PermitRootLogin.*/PermitRootLogin no/' /etc/ssh/sshd_config \
+    && sed -i 's/#PasswordAuthentication.*/PasswordAuthentication no/' /etc/ssh/sshd_config \
+    && sed -i 's/#PubkeyAuthentication.*/PubkeyAuthentication yes/' /etc/ssh/sshd_config
+
+# Create test user and unlock account (Alpine locks by default)
+RUN adduser -D -s /bin/bash testuser \
+    && passwd -u testuser
+
+# Setup SSH key auth (will be mounted or generated at build)
+RUN mkdir -p /home/testuser/.ssh && chmod 700 /home/testuser/.ssh
+COPY --chmod=600 id_test.pub /home/testuser/.ssh/authorized_keys
+RUN chown -R testuser:testuser /home/testuser/.ssh
+
+# Expose SSH and mosh UDP ports
+EXPOSE 22
+EXPOSE 60001-60010/udp
+
+CMD ["/usr/sbin/sshd", "-D", "-e"]
