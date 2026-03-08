@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.0](https://github.com/danmartuszewski/hop/compare/v1.1.1...v1.2.0) (2026-03-08)
+
+
+### Features
+
+* add mosh support as alternative to SSH ([e7bc593](https://github.com/danmartuszewski/hop/commit/e7bc5930550597e927faf3228ff694c710d7de47)), closes [#13](https://github.com/danmartuszewski/hop/issues/13)
+
 ## [1.1.1](https://github.com/danmartuszewski/hop/compare/v1.1.0...v1.1.1) (2026-02-17)
 
 
