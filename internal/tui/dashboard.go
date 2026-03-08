@@ -13,6 +13,7 @@ import (
 	"github.com/danmartuszewski/hop/internal/config"
 	"github.com/danmartuszewski/hop/internal/export"
 	"github.com/danmartuszewski/hop/internal/fuzzy"
+	"github.com/danmartuszewski/hop/internal/health"
 	"github.com/danmartuszewski/hop/internal/ssh"
 )
 
@@ -31,6 +32,11 @@ const (
 
 type sshFinishedMsg struct {
 	err error
+}
+
+type healthCheckResultMsg struct {
+	id     string
+	status health.Status
 }
 
 type listItem struct {
@@ -71,6 +77,9 @@ type Model struct {
 	importModel ImportModel
 	// Export modal
 	exportModel ExportModel
+	// Health checks
+	healthStatus  map[string]health.Status
+	healthEnabled bool
 }
 
 func NewModel(cfg *config.Config, version string) Model {
@@ -90,17 +99,27 @@ func NewModel(cfg *config.Config, version string) Model {
 		history = &config.History{}
 	}
 
+	healthEnabled := cfg.Defaults.HealthCheckEnabled()
+	healthStatus := make(map[string]health.Status)
+	if healthEnabled {
+		for _, conn := range cfg.Connections {
+			healthStatus[conn.ID] = health.StatusChecking
+		}
+	}
+
 	m := Model{
-		config:     cfg,
-		configPath: config.DefaultConfigPath(),
-		version:    version,
-		filter:     ti,
-		pasteInput: paste,
-		filtered:   []int{},
-		view:       viewList,
-		help:       NewHelpModel(),
-		activeTags: make(map[string]bool),
-		history:    history,
+		config:        cfg,
+		configPath:    config.DefaultConfigPath(),
+		version:       version,
+		filter:        ti,
+		pasteInput:    paste,
+		filtered:      []int{},
+		view:          viewList,
+		help:          NewHelpModel(),
+		activeTags:    make(map[string]bool),
+		history:       history,
+		healthStatus:  healthStatus,
+		healthEnabled: healthEnabled,
 	}
 
 	m.buildItems()
@@ -322,10 +341,40 @@ func (m *Model) selectedConnection() *config.Connection {
 func (m *Model) refresh() {
 	m.buildItems()
 	m.applyFilter(m.filter.Value())
+	if m.healthEnabled {
+		// Clean stale entries and mark new connections for checking
+		current := make(map[string]bool)
+		for _, conn := range m.config.Connections {
+			current[conn.ID] = true
+			if _, exists := m.healthStatus[conn.ID]; !exists {
+				m.healthStatus[conn.ID] = health.StatusChecking
+			}
+		}
+		for id := range m.healthStatus {
+			if !current[id] {
+				delete(m.healthStatus, id)
+			}
+		}
+	}
 }
 
 func (m Model) Init() tea.Cmd {
-	return nil
+	return m.buildHealthCheckCmd()
+}
+
+func (m Model) buildHealthCheckCmd() tea.Cmd {
+	if !m.healthEnabled {
+		return nil
+	}
+	var cmds []tea.Cmd
+	for _, conn := range m.config.Connections {
+		conn := conn
+		cmds = append(cmds, func() tea.Msg {
+			status := health.CheckTCP(conn.Host, conn.Port)
+			return healthCheckResultMsg{id: conn.ID, status: status}
+		})
+	}
+	return tea.Batch(cmds...)
 }
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -357,6 +406,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m Model) updateList(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
+	case healthCheckResultMsg:
+		m.healthStatus[msg.id] = msg.status
+		return m, nil
 	case sshFinishedMsg:
 		if msg.err != nil {
 			m.statusMsg = fmt.Sprintf("SSH session ended with error: %v", msg.err)
@@ -514,6 +566,15 @@ func (m Model) updateList(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.statusMsg = "Sorted by name"
 			}
 			m.applyFilter(m.filter.Value())
+			return m, nil
+		case "R":
+			if m.healthEnabled {
+				for _, conn := range m.config.Connections {
+					m.healthStatus[conn.ID] = health.StatusChecking
+				}
+				m.statusMsg = "Refreshing health checks..."
+				return m, m.buildHealthCheckCmd()
+			}
 			return m, nil
 		case "x":
 			// Build list of currently filtered connections for export
@@ -680,7 +741,7 @@ func (m Model) updateForm(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		m.refresh()
 		m.view = viewList
-		return m, nil
+		return m, m.buildHealthCheckCmd()
 	}
 
 	return m, cmd
@@ -703,7 +764,7 @@ func (m Model) updateConfirmDelete(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 			m.deleteTarget = nil
 			m.view = viewList
-			return m, nil
+			return m, m.buildHealthCheckCmd()
 		case "n", "N", "esc":
 			m.deleteTarget = nil
 			m.view = viewList
@@ -807,7 +868,7 @@ func (m Model) updateImport(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.refresh()
 		m.collectTags()
 		m.view = viewList
-		return m, nil
+		return m, m.buildHealthCheckCmd()
 	}
 
 	return m, cmd
@@ -1037,11 +1098,25 @@ func (m Model) renderListContent() string {
 			}
 		}
 
+		// Health indicator
+		healthDot := ""
+		if m.healthEnabled {
+			status := m.healthStatus[conn.ID]
+			switch status {
+			case health.StatusReachable:
+				healthDot = healthReachableStyle.Render("●") + " "
+			case health.StatusUnreachable:
+				healthDot = healthUnreachableStyle.Render("●") + " "
+			default:
+				healthDot = healthCheckingStyle.Render("○") + " "
+			}
+		}
+
 		var line string
 		if isSelected {
-			line = indent + selectedItemStyle.Render(">") + " " + selectedItemStyle.Render(padded) + "  " + userHost + portStr
+			line = indent + selectedItemStyle.Render(">") + " " + selectedItemStyle.Render(padded) + "  " + userHost + portStr + " " + healthDot
 		} else {
-			line = indent + "  " + itemStyle.Render(padded) + "  " + userHost + portStr
+			line = indent + "  " + itemStyle.Render(padded) + "  " + userHost + portStr + " " + healthDot
 		}
 
 		lines = append(lines, displayLine{text: line, filterIndex: fi})

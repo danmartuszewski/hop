@@ -61,6 +61,7 @@ func (m HelpModel) View() string {
 				{"d", "Delete selected connection"},
 				{"y", "Copy SSH command"},
 			{"x", "Export connections to YAML"},
+				{"R", "Refresh health checks"},
 			},
 		},
 		{

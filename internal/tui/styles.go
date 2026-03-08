@@ -90,4 +90,14 @@ var (
 			Foreground(accentColor).
 			Background(lipgloss.Color("236")).
 			Padding(0, 1)
+
+	// Health check indicators
+	healthReachableStyle = lipgloss.NewStyle().
+				Foreground(successColor)
+
+	healthUnreachableStyle = lipgloss.NewStyle().
+				Foreground(lipgloss.Color("196"))
+
+	healthCheckingStyle = lipgloss.NewStyle().
+				Foreground(secondaryColor)
 )

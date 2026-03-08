@@ -16,9 +16,18 @@ type Config struct {
 }
 
 type Defaults struct {
-	User    string `yaml:"user,omitempty"`
-	Port    int    `yaml:"port,omitempty"`
-	UseMosh bool   `yaml:"use_mosh,omitempty"`
+	User        string `yaml:"user,omitempty"`
+	Port        int    `yaml:"port,omitempty"`
+	UseMosh     bool   `yaml:"use_mosh,omitempty"`
+	HealthCheck *bool  `yaml:"health_check,omitempty"`
+}
+
+// HealthCheckEnabled returns whether health checks are enabled (default: true).
+func (d *Defaults) HealthCheckEnabled() bool {
+	if d.HealthCheck == nil {
+		return true
+	}
+	return *d.HealthCheck
 }
 
 type Connection struct {

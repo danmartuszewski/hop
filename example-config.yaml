@@ -3,6 +3,7 @@ version: 1
 defaults:
   user: deploy
   port: 22
+  # health_check: false
 
 connections:
   # E-commerce platform
