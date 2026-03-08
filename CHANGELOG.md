@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.0](https://github.com/danmartuszewski/hop/compare/v1.2.0...v1.3.0) (2026-03-08)
+
+
+### Features
+
+* add connection health indicators to dashboard ([17664e9](https://github.com/danmartuszewski/hop/commit/17664e97cfc7533f99b15aa5f8adca2d0f9d4e90))
+
 ## [1.2.0](https://github.com/danmartuszewski/hop/compare/v1.1.1...v1.2.0) (2026-03-08)
 
 
