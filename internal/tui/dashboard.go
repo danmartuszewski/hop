@@ -572,7 +572,6 @@ func (m Model) updateList(msg tea.Msg) (tea.Model, tea.Cmd) {
 				for _, conn := range m.config.Connections {
 					m.healthStatus[conn.ID] = health.StatusChecking
 				}
-				m.statusMsg = "Refreshing health checks..."
 				return m, m.buildHealthCheckCmd()
 			}
 			return m, nil
