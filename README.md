@@ -50,6 +50,10 @@ git clone https://github.com/danmartuszewski/hop.git && cd hop && make build
 ./bin/hop
 ```
 
+## Hosted deployment
+
+A hosted deployment is available on [Fronteir AI](https://fronteir.ai/mcp/danmartuszewski-hop).
+
 ## Features
 
 - **Fuzzy matching** - Type `hop prod` to connect to `app-server-prod-03`
