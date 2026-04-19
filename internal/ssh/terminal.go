@@ -23,6 +23,9 @@ const (
 	TerminalKitty          TerminalType = "kitty"
 	TerminalGhostty        TerminalType = "ghostty"
 	TerminalCmux           TerminalType = "cmux"
+	TerminalWezTerm        TerminalType = "wezterm"
+	TerminalTilix          TerminalType = "tilix"
+	TerminalTerminator     TerminalType = "terminator"
 )
 
 // DetectTerminal detects the current terminal emulator.
@@ -67,6 +70,12 @@ func parseTerminalType(s string) TerminalType {
 		return TerminalGhostty
 	case "cmux":
 		return TerminalCmux
+	case "wezterm":
+		return TerminalWezTerm
+	case "tilix":
+		return TerminalTilix
+	case "terminator":
+		return TerminalTerminator
 	default:
 		return TerminalUnknown
 	}
@@ -86,6 +95,8 @@ func detectMacOSTerminal() TerminalType {
 		return TerminalAlacritty
 	case "kitty":
 		return TerminalKitty
+	case "WezTerm":
+		return TerminalWezTerm
 	case "ghostty":
 		// cmux embeds libghostty and sets TERM_PROGRAM=ghostty too; disambiguate
 		// via CMUX_WORKSPACE_ID, which cmux guarantees in its spawned shells.
@@ -121,12 +132,28 @@ func detectLinuxTerminal() TerminalType {
 			return TerminalKitty
 		case "ghostty":
 			return TerminalGhostty
+		case "wezterm":
+			return TerminalWezTerm
 		}
+	}
+
+	// WezTerm clears TERM_PROGRAM under sudo; WEZTERM_PANE is the more specific signal.
+	if os.Getenv("WEZTERM_PANE") != "" {
+		return TerminalWezTerm
 	}
 
 	// Ghostty sets GHOSTTY_RESOURCES_DIR in its shell integration
 	if os.Getenv("GHOSTTY_RESOURCES_DIR") != "" {
 		return TerminalGhostty
+	}
+
+	// Tilix and Terminator both set VTE_VERSION, so check them before the
+	// GNOME Terminal branch below.
+	if os.Getenv("TILIX_ID") != "" {
+		return TerminalTilix
+	}
+	if os.Getenv("TERMINATOR_UUID") != "" {
+		return TerminalTerminator
 	}
 
 	// Check GNOME Terminal
@@ -158,6 +185,11 @@ func detectWindowsTerminal() TerminalType {
 		return TerminalWindowsTerminal
 	}
 
+	// WezTerm sets TERM_PROGRAM=WezTerm (or WEZTERM_PANE) on Windows too.
+	if strings.EqualFold(os.Getenv("TERM_PROGRAM"), "wezterm") || os.Getenv("WEZTERM_PANE") != "" {
+		return TerminalWezTerm
+	}
+
 	// Check for Alacritty
 	if os.Getenv("ALACRITTY_SOCKET") != "" {
 		return TerminalAlacritty
@@ -171,7 +203,7 @@ func (t TerminalType) SupportsNewTab() bool {
 	switch t {
 	case TerminalAppleTerminal, TerminalITerm2, TerminalWarp,
 		TerminalWindowsTerminal, TerminalGNOMETerminal, TerminalKonsole, TerminalKitty,
-		TerminalGhostty, TerminalCmux:
+		TerminalGhostty, TerminalCmux, TerminalWezTerm, TerminalTilix, TerminalTerminator:
 		return true
 	case TerminalAlacritty:
 		// Alacritty doesn't support tabs, but can open new windows
@@ -204,6 +236,12 @@ func (t TerminalType) String() string {
 		return "Ghostty"
 	case TerminalCmux:
 		return "cmux"
+	case TerminalWezTerm:
+		return "WezTerm"
+	case TerminalTilix:
+		return "Tilix"
+	case TerminalTerminator:
+		return "Terminator"
 	default:
 		return "Unknown"
 	}
@@ -233,6 +271,12 @@ func (t TerminalType) OpenNewTab(command string) error {
 		return openGhosttyTab(command)
 	case TerminalCmux:
 		return openCmuxTab(command)
+	case TerminalWezTerm:
+		return openWezTermTab(command)
+	case TerminalTilix:
+		return openTilixTab(command)
+	case TerminalTerminator:
+		return openTerminatorTab(command)
 	default:
 		return fmt.Errorf("terminal %q does not support opening new tabs", t)
 	}
@@ -350,6 +394,34 @@ func openCmuxTab(command string) error {
 	// the command into its shell, atomic via cmux's socket API — no AppleScript
 	// keystroke synthesis, no Accessibility permission required.
 	return exec.Command(bin, "new-workspace", "--command", command).Start()
+}
+
+func openWezTermTab(command string) error {
+	// `wezterm cli spawn` adds a tab to the running GUI via its mux socket. If
+	// no GUI is running that fails, so fall back to `wezterm start` which
+	// launches a fresh window.
+	err := exec.Command("wezterm", "cli", "spawn", "--", "sh", "-c", command).Run()
+	if err == nil {
+		return nil
+	}
+	return exec.Command("wezterm", "start", "--", "sh", "-c", command).Start()
+}
+
+func openTilixTab(command string) error {
+	// Tilix has no "new tab" action, only splits. session-add-right is the
+	// closest "new pane alongside" primitive. `-e` takes a single string that
+	// Tilix word-splits, so we build a shell invocation and escape single
+	// quotes in the user command.
+	escaped := strings.ReplaceAll(command, "'", `'\''`)
+	arg := fmt.Sprintf("sh -c '%s; exec bash'", escaped)
+	return exec.Command("tilix", "--action=session-add-right", "-e", arg).Start()
+}
+
+func openTerminatorTab(command string) error {
+	// `--new-tab` routes via DBus to the first running Terminator instance,
+	// or opens a new window with one tab if none is running. `-x` consumes
+	// the rest of argv as the child command (no string-splitting surprises).
+	return exec.Command("terminator", "--new-tab", "-x", "sh", "-c", command+"; exec bash").Start()
 }
 
 func escapeAppleScript(s string) string {

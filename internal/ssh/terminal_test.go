@@ -31,6 +31,12 @@ func TestParseTerminalType(t *testing.T) {
 		{"Ghostty", TerminalGhostty},
 		{"cmux", TerminalCmux},
 		{"Cmux", TerminalCmux},
+		{"wezterm", TerminalWezTerm},
+		{"WezTerm", TerminalWezTerm},
+		{"tilix", TerminalTilix},
+		{"Tilix", TerminalTilix},
+		{"terminator", TerminalTerminator},
+		{"Terminator", TerminalTerminator},
 		{"unknown", TerminalUnknown},
 		{"", TerminalUnknown},
 		{"some-random-terminal", TerminalUnknown},
@@ -61,6 +67,9 @@ func TestTerminalTypeString(t *testing.T) {
 		{TerminalKitty, "Kitty"},
 		{TerminalGhostty, "Ghostty"},
 		{TerminalCmux, "cmux"},
+		{TerminalWezTerm, "WezTerm"},
+		{TerminalTilix, "Tilix"},
+		{TerminalTerminator, "Terminator"},
 		{TerminalUnknown, "Unknown"},
 	}
 
@@ -86,6 +95,9 @@ func TestTerminalTypeSupportsNewTab(t *testing.T) {
 		TerminalKitty,
 		TerminalGhostty,
 		TerminalCmux,
+		TerminalWezTerm,
+		TerminalTilix,
+		TerminalTerminator,
 	}
 
 	doesNotSupportTab := []TerminalType{
@@ -173,6 +185,7 @@ func TestDetectMacOSTerminal(t *testing.T) {
 		{"Kitty", "kitty", "", "", "", TerminalKitty},
 		{"Ghostty", "ghostty", "", "", "", TerminalGhostty},
 		{"cmux via CMUX_WORKSPACE_ID", "ghostty", "", "", "ws-123", TerminalCmux},
+		{"WezTerm", "WezTerm", "", "", "", TerminalWezTerm},
 		{"Warp via LC_TERMINAL", "", "iTerm2", "true", "", TerminalWarp},
 		{"iTerm2 via LC_TERMINAL", "", "iTerm2", "", "", TerminalITerm2},
 		{"Default to Apple Terminal", "", "", "", "", TerminalAppleTerminal},
@@ -210,6 +223,9 @@ func TestDetectLinuxTerminal(t *testing.T) {
 	origKitty := os.Getenv("KITTY_WINDOW_ID")
 	origAlacritty := os.Getenv("ALACRITTY_SOCKET")
 	origGhostty := os.Getenv("GHOSTTY_RESOURCES_DIR")
+	origWezTerm := os.Getenv("WEZTERM_PANE")
+	origTilix := os.Getenv("TILIX_ID")
+	origTerminator := os.Getenv("TERMINATOR_UUID")
 	defer func() {
 		os.Setenv("TERM_PROGRAM", origTermProgram)
 		os.Setenv("GNOME_TERMINAL_SCREEN", origGnomeScreen)
@@ -218,6 +234,9 @@ func TestDetectLinuxTerminal(t *testing.T) {
 		os.Setenv("KITTY_WINDOW_ID", origKitty)
 		os.Setenv("ALACRITTY_SOCKET", origAlacritty)
 		os.Setenv("GHOSTTY_RESOURCES_DIR", origGhostty)
+		os.Setenv("WEZTERM_PANE", origWezTerm)
+		os.Setenv("TILIX_ID", origTilix)
+		os.Setenv("TERMINATOR_UUID", origTerminator)
 	}()
 
 	// Clear all env vars first
@@ -228,6 +247,9 @@ func TestDetectLinuxTerminal(t *testing.T) {
 	os.Unsetenv("KITTY_WINDOW_ID")
 	os.Unsetenv("ALACRITTY_SOCKET")
 	os.Unsetenv("GHOSTTY_RESOURCES_DIR")
+	os.Unsetenv("WEZTERM_PANE")
+	os.Unsetenv("TILIX_ID")
+	os.Unsetenv("TERMINATOR_UUID")
 
 	tests := []struct {
 		name     string
@@ -298,6 +320,36 @@ func TestDetectLinuxTerminal(t *testing.T) {
 			expected: TerminalGhostty,
 		},
 		{
+			name: "WezTerm via TERM_PROGRAM",
+			setup: func() {
+				os.Setenv("TERM_PROGRAM", "WezTerm")
+			},
+			expected: TerminalWezTerm,
+		},
+		{
+			name: "WezTerm via WEZTERM_PANE (sudo case)",
+			setup: func() {
+				os.Setenv("WEZTERM_PANE", "0")
+			},
+			expected: TerminalWezTerm,
+		},
+		{
+			name: "Tilix wins over VTE_VERSION",
+			setup: func() {
+				os.Setenv("TILIX_ID", "abc-123")
+				os.Setenv("VTE_VERSION", "6800")
+			},
+			expected: TerminalTilix,
+		},
+		{
+			name: "Terminator wins over VTE_VERSION",
+			setup: func() {
+				os.Setenv("TERMINATOR_UUID", "deadbeef")
+				os.Setenv("VTE_VERSION", "6800")
+			},
+			expected: TerminalTerminator,
+		},
+		{
 			name:     "Unknown terminal",
 			setup:    func() {},
 			expected: TerminalUnknown,
@@ -314,6 +366,9 @@ func TestDetectLinuxTerminal(t *testing.T) {
 			os.Unsetenv("KITTY_WINDOW_ID")
 			os.Unsetenv("ALACRITTY_SOCKET")
 			os.Unsetenv("GHOSTTY_RESOURCES_DIR")
+			os.Unsetenv("WEZTERM_PANE")
+			os.Unsetenv("TILIX_ID")
+			os.Unsetenv("TERMINATOR_UUID")
 
 			tc.setup()
 			result := detectLinuxTerminal()
@@ -328,14 +383,20 @@ func TestDetectWindowsTerminal(t *testing.T) {
 	// Save original env vars
 	origWTSession := os.Getenv("WT_SESSION")
 	origAlacritty := os.Getenv("ALACRITTY_SOCKET")
+	origTermProgram := os.Getenv("TERM_PROGRAM")
+	origWezTerm := os.Getenv("WEZTERM_PANE")
 	defer func() {
 		os.Setenv("WT_SESSION", origWTSession)
 		os.Setenv("ALACRITTY_SOCKET", origAlacritty)
+		os.Setenv("TERM_PROGRAM", origTermProgram)
+		os.Setenv("WEZTERM_PANE", origWezTerm)
 	}()
 
 	// Clear all env vars first
 	os.Unsetenv("WT_SESSION")
 	os.Unsetenv("ALACRITTY_SOCKET")
+	os.Unsetenv("TERM_PROGRAM")
+	os.Unsetenv("WEZTERM_PANE")
 
 	tests := []struct {
 		name     string
@@ -348,6 +409,20 @@ func TestDetectWindowsTerminal(t *testing.T) {
 				os.Setenv("WT_SESSION", "some-guid")
 			},
 			expected: TerminalWindowsTerminal,
+		},
+		{
+			name: "WezTerm via TERM_PROGRAM",
+			setup: func() {
+				os.Setenv("TERM_PROGRAM", "WezTerm")
+			},
+			expected: TerminalWezTerm,
+		},
+		{
+			name: "WezTerm via WEZTERM_PANE",
+			setup: func() {
+				os.Setenv("WEZTERM_PANE", "0")
+			},
+			expected: TerminalWezTerm,
 		},
 		{
 			name: "Alacritty on Windows",
@@ -367,6 +442,8 @@ func TestDetectWindowsTerminal(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			os.Unsetenv("WT_SESSION")
 			os.Unsetenv("ALACRITTY_SOCKET")
+			os.Unsetenv("TERM_PROGRAM")
+			os.Unsetenv("WEZTERM_PANE")
 
 			tc.setup()
 			result := detectWindowsTerminal()
