@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.4.0](https://github.com/danmartuszewski/hop/compare/v1.3.0...v1.4.0) (2026-04-19)
+
+
+### Features
+
+* add cmux terminal support for hop open ([6067d99](https://github.com/danmartuszewski/hop/commit/6067d995636999e1da20d267a4df80abb32fd9a7))
+* add Ghostty terminal support for hop open ([97cff53](https://github.com/danmartuszewski/hop/commit/97cff5351a6ce293113ed3f65aa611399bf1a3ab)), closes [#17](https://github.com/danmartuszewski/hop/issues/17)
+* add WezTerm, Tilix, and Terminator terminal support ([f1cf7cd](https://github.com/danmartuszewski/hop/commit/f1cf7cd1cd2bfb69fa7dc78c465eae00e1d18ac5))
+
+
+### Bug Fixes
+
+* remove redundant status message on health check refresh ([90e685b](https://github.com/danmartuszewski/hop/commit/90e685bfcc88ca2d52ffd503257a2903afe284d1))
+
 ## [1.3.0](https://github.com/danmartuszewski/hop/compare/v1.2.0...v1.3.0) (2026-03-08)
 
 
