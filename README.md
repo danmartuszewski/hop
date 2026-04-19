@@ -278,6 +278,10 @@ At least one filter flag or `--all` is required. Filters combine with AND logic.
 hop                          # Open TUI dashboard
 hop <query>                  # Fuzzy match and connect
 hop connect <id>             # Connect by exact ID
+hop get <id> <field>         # Print single field value to stdout
+hop get <id> f1,f2,f3        # Print multiple fields tab-separated
+hop get <id>                 # Print all fields as "key value" lines
+hop get --help               # Full field list and flags
 hop list                     # List all connections
 hop list --json              # List as JSON
 hop list --flat              # Flat list without grouping
@@ -335,6 +339,47 @@ hop open myapp-prod -- "htop"          # with initial command
 # List connections
 hop list --flat
 ```
+
+### Scripting with hop
+
+`hop get` prints connection fields to stdout so you can drop them straight into shell pipelines and command substitutions — think of it as `ssh -G` for your hop config.
+
+```bash
+# Build an ssh invocation from config:
+ssh -i "$(hop get prod identity_file)" "$(hop get prod user)@$(hop get prod host)"
+```
+
+```bash
+# Read multiple fields at once (tab-separated):
+IFS=$'\t' read -r host port user < <(hop get prod host,port,user)
+```
+
+```bash
+# Fallback when a field is empty:
+hop get prod port --default 22
+```
+
+```bash
+# Strict shells: suppress the trailing newline.
+hop get prod host -n
+```
+
+```bash
+# Dump all non-empty scalar fields (ssh -G style "key value" lines):
+hop get prod
+```
+
+```bash
+# Read a single SSH option by key:
+hop get prod options.StrictHostKeyChecking
+```
+
+```bash
+# Structured output for jq and friends:
+hop get prod host,port --json | jq -r .host
+```
+
+**Matching is exact ID only** (not fuzzy) — safer inside scripts. Unknown IDs exit 1 with a "did you mean" hint. See `hop get --help` for the full field list.
 
 ## MCP Server (AI Assistant Integration)
 

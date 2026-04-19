@@ -1,12 +1,27 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"os"
 
 	"github.com/danmartuszewski/hop/internal/tui"
 	"github.com/spf13/cobra"
 )
+
+// silentErr marks an error whose message has already been written to stderr
+// by the command that produced it; Execute should not print it again.
+type silentErr struct{ err error }
+
+func (s silentErr) Error() string { return s.err.Error() }
+func (s silentErr) Unwrap() error { return s.err }
+
+func silent(err error) error {
+	if err == nil {
+		return nil
+	}
+	return silentErr{err: err}
+}
 
 var (
 	cfgFile string
@@ -49,7 +64,10 @@ func Execute() error {
 		if len(args) > 0 && !isKnownCommand(args[0]) {
 			return runQuickConnect(rootCmd, args)
 		}
-		fmt.Fprintln(os.Stderr, err)
+		var s silentErr
+		if !errors.As(err, &s) {
+			fmt.Fprintln(os.Stderr, err)
+		}
 		os.Exit(1)
 	}
 	return nil
