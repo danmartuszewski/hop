@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.5.0](https://github.com/danmartuszewski/hop/compare/v1.4.0...v1.5.0) (2026-04-19)
+
+
+### Features
+
+* add `hop get` command for scripting ([245b0be](https://github.com/danmartuszewski/hop/commit/245b0be91de0ab5f2d09b5a116522c3b7013a477))
+
 ## [1.4.0](https://github.com/danmartuszewski/hop/compare/v1.3.0...v1.4.0) (2026-04-19)
 
 
