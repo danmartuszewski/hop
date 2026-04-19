@@ -22,6 +22,7 @@ const (
 	TerminalKonsole        TerminalType = "konsole"
 	TerminalKitty          TerminalType = "kitty"
 	TerminalGhostty        TerminalType = "ghostty"
+	TerminalCmux           TerminalType = "cmux"
 )
 
 // DetectTerminal detects the current terminal emulator.
@@ -64,6 +65,8 @@ func parseTerminalType(s string) TerminalType {
 		return TerminalKitty
 	case "ghostty":
 		return TerminalGhostty
+	case "cmux":
+		return TerminalCmux
 	default:
 		return TerminalUnknown
 	}
@@ -84,6 +87,11 @@ func detectMacOSTerminal() TerminalType {
 	case "kitty":
 		return TerminalKitty
 	case "ghostty":
+		// cmux embeds libghostty and sets TERM_PROGRAM=ghostty too; disambiguate
+		// via CMUX_WORKSPACE_ID, which cmux guarantees in its spawned shells.
+		if os.Getenv("CMUX_WORKSPACE_ID") != "" {
+			return TerminalCmux
+		}
 		return TerminalGhostty
 	}
 
@@ -163,7 +171,7 @@ func (t TerminalType) SupportsNewTab() bool {
 	switch t {
 	case TerminalAppleTerminal, TerminalITerm2, TerminalWarp,
 		TerminalWindowsTerminal, TerminalGNOMETerminal, TerminalKonsole, TerminalKitty,
-		TerminalGhostty:
+		TerminalGhostty, TerminalCmux:
 		return true
 	case TerminalAlacritty:
 		// Alacritty doesn't support tabs, but can open new windows
@@ -194,6 +202,8 @@ func (t TerminalType) String() string {
 		return "Kitty"
 	case TerminalGhostty:
 		return "Ghostty"
+	case TerminalCmux:
+		return "cmux"
 	default:
 		return "Unknown"
 	}
@@ -221,6 +231,8 @@ func (t TerminalType) OpenNewTab(command string) error {
 		return openKittyTab(command)
 	case TerminalGhostty:
 		return openGhosttyTab(command)
+	case TerminalCmux:
+		return openCmuxTab(command)
 	default:
 		return fmt.Errorf("terminal %q does not support opening new tabs", t)
 	}
@@ -317,6 +329,27 @@ func openGhosttyTab(command string) error {
 
 	// Linux / other: spawn a new Ghostty window running the command.
 	return exec.Command("ghostty", "-e", "sh", "-c", command).Start()
+}
+
+// cmuxBundledCLI is where the Homebrew cask install of cmux.app keeps its CLI
+// when it isn't symlinked onto PATH.
+const cmuxBundledCLI = "/Applications/cmux.app/Contents/Resources/bin/cmux"
+
+func openCmuxTab(command string) error {
+	// cmux is macOS-only (native Swift + AppKit app).
+	if runtime.GOOS != "darwin" {
+		return fmt.Errorf("cmux is only supported on macOS")
+	}
+
+	bin, err := exec.LookPath("cmux")
+	if err != nil {
+		bin = cmuxBundledCLI
+	}
+
+	// `cmux new-workspace --command <cmd>` creates a new workspace tab and types
+	// the command into its shell, atomic via cmux's socket API — no AppleScript
+	// keystroke synthesis, no Accessibility permission required.
+	return exec.Command(bin, "new-workspace", "--command", command).Start()
 }
 
 func escapeAppleScript(s string) string {

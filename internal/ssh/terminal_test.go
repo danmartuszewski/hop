@@ -29,6 +29,8 @@ func TestParseTerminalType(t *testing.T) {
 		{"kitty", TerminalKitty},
 		{"ghostty", TerminalGhostty},
 		{"Ghostty", TerminalGhostty},
+		{"cmux", TerminalCmux},
+		{"Cmux", TerminalCmux},
 		{"unknown", TerminalUnknown},
 		{"", TerminalUnknown},
 		{"some-random-terminal", TerminalUnknown},
@@ -58,6 +60,7 @@ func TestTerminalTypeString(t *testing.T) {
 		{TerminalKonsole, "Konsole"},
 		{TerminalKitty, "Kitty"},
 		{TerminalGhostty, "Ghostty"},
+		{TerminalCmux, "cmux"},
 		{TerminalUnknown, "Unknown"},
 	}
 
@@ -82,6 +85,7 @@ func TestTerminalTypeSupportsNewTab(t *testing.T) {
 		TerminalKonsole,
 		TerminalKitty,
 		TerminalGhostty,
+		TerminalCmux,
 	}
 
 	doesNotSupportTab := []TerminalType{
@@ -142,32 +146,36 @@ func TestDetectMacOSTerminal(t *testing.T) {
 	origLCTerminal := os.Getenv("LC_TERMINAL")
 	origWarpLocal := os.Getenv("WARP_IS_LOCAL_SHELL_SESSION")
 	origHopTerminal := os.Getenv("HOP_TERMINAL")
+	origCmuxWorkspace := os.Getenv("CMUX_WORKSPACE_ID")
 	defer func() {
 		os.Setenv("TERM_PROGRAM", origTermProgram)
 		os.Setenv("LC_TERMINAL", origLCTerminal)
 		os.Setenv("WARP_IS_LOCAL_SHELL_SESSION", origWarpLocal)
 		os.Setenv("HOP_TERMINAL", origHopTerminal)
+		os.Setenv("CMUX_WORKSPACE_ID", origCmuxWorkspace)
 	}()
 
 	// Clear HOP_TERMINAL to test auto-detection
 	os.Unsetenv("HOP_TERMINAL")
 
 	tests := []struct {
-		name        string
-		termProgram string
-		lcTerminal  string
-		warpLocal   string
-		expected    TerminalType
+		name          string
+		termProgram   string
+		lcTerminal    string
+		warpLocal     string
+		cmuxWorkspace string
+		expected      TerminalType
 	}{
-		{"iTerm2", "iTerm.app", "", "", TerminalITerm2},
-		{"Apple Terminal", "Apple_Terminal", "", "", TerminalAppleTerminal},
-		{"Warp via TERM_PROGRAM", "WarpTerminal", "", "", TerminalWarp},
-		{"Alacritty", "Alacritty", "", "", TerminalAlacritty},
-		{"Kitty", "kitty", "", "", TerminalKitty},
-		{"Ghostty", "ghostty", "", "", TerminalGhostty},
-		{"Warp via LC_TERMINAL", "", "iTerm2", "true", TerminalWarp},
-		{"iTerm2 via LC_TERMINAL", "", "iTerm2", "", TerminalITerm2},
-		{"Default to Apple Terminal", "", "", "", TerminalAppleTerminal},
+		{"iTerm2", "iTerm.app", "", "", "", TerminalITerm2},
+		{"Apple Terminal", "Apple_Terminal", "", "", "", TerminalAppleTerminal},
+		{"Warp via TERM_PROGRAM", "WarpTerminal", "", "", "", TerminalWarp},
+		{"Alacritty", "Alacritty", "", "", "", TerminalAlacritty},
+		{"Kitty", "kitty", "", "", "", TerminalKitty},
+		{"Ghostty", "ghostty", "", "", "", TerminalGhostty},
+		{"cmux via CMUX_WORKSPACE_ID", "ghostty", "", "", "ws-123", TerminalCmux},
+		{"Warp via LC_TERMINAL", "", "iTerm2", "true", "", TerminalWarp},
+		{"iTerm2 via LC_TERMINAL", "", "iTerm2", "", "", TerminalITerm2},
+		{"Default to Apple Terminal", "", "", "", "", TerminalAppleTerminal},
 	}
 
 	for _, tc := range tests {
@@ -178,6 +186,11 @@ func TestDetectMacOSTerminal(t *testing.T) {
 				os.Setenv("WARP_IS_LOCAL_SHELL_SESSION", tc.warpLocal)
 			} else {
 				os.Unsetenv("WARP_IS_LOCAL_SHELL_SESSION")
+			}
+			if tc.cmuxWorkspace != "" {
+				os.Setenv("CMUX_WORKSPACE_ID", tc.cmuxWorkspace)
+			} else {
+				os.Unsetenv("CMUX_WORKSPACE_ID")
 			}
 
 			result := detectMacOSTerminal()
