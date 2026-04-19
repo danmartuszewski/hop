@@ -27,6 +27,8 @@ func TestParseTerminalType(t *testing.T) {
 		{"gnome", TerminalGNOMETerminal},
 		{"konsole", TerminalKonsole},
 		{"kitty", TerminalKitty},
+		{"ghostty", TerminalGhostty},
+		{"Ghostty", TerminalGhostty},
 		{"unknown", TerminalUnknown},
 		{"", TerminalUnknown},
 		{"some-random-terminal", TerminalUnknown},
@@ -55,6 +57,7 @@ func TestTerminalTypeString(t *testing.T) {
 		{TerminalGNOMETerminal, "GNOME Terminal"},
 		{TerminalKonsole, "Konsole"},
 		{TerminalKitty, "Kitty"},
+		{TerminalGhostty, "Ghostty"},
 		{TerminalUnknown, "Unknown"},
 	}
 
@@ -78,6 +81,7 @@ func TestTerminalTypeSupportsNewTab(t *testing.T) {
 		TerminalGNOMETerminal,
 		TerminalKonsole,
 		TerminalKitty,
+		TerminalGhostty,
 	}
 
 	doesNotSupportTab := []TerminalType{
@@ -160,6 +164,7 @@ func TestDetectMacOSTerminal(t *testing.T) {
 		{"Warp via TERM_PROGRAM", "WarpTerminal", "", "", TerminalWarp},
 		{"Alacritty", "Alacritty", "", "", TerminalAlacritty},
 		{"Kitty", "kitty", "", "", TerminalKitty},
+		{"Ghostty", "ghostty", "", "", TerminalGhostty},
 		{"Warp via LC_TERMINAL", "", "iTerm2", "true", TerminalWarp},
 		{"iTerm2 via LC_TERMINAL", "", "iTerm2", "", TerminalITerm2},
 		{"Default to Apple Terminal", "", "", "", TerminalAppleTerminal},
@@ -191,6 +196,7 @@ func TestDetectLinuxTerminal(t *testing.T) {
 	origKonsole := os.Getenv("KONSOLE_VERSION")
 	origKitty := os.Getenv("KITTY_WINDOW_ID")
 	origAlacritty := os.Getenv("ALACRITTY_SOCKET")
+	origGhostty := os.Getenv("GHOSTTY_RESOURCES_DIR")
 	defer func() {
 		os.Setenv("TERM_PROGRAM", origTermProgram)
 		os.Setenv("GNOME_TERMINAL_SCREEN", origGnomeScreen)
@@ -198,6 +204,7 @@ func TestDetectLinuxTerminal(t *testing.T) {
 		os.Setenv("KONSOLE_VERSION", origKonsole)
 		os.Setenv("KITTY_WINDOW_ID", origKitty)
 		os.Setenv("ALACRITTY_SOCKET", origAlacritty)
+		os.Setenv("GHOSTTY_RESOURCES_DIR", origGhostty)
 	}()
 
 	// Clear all env vars first
@@ -207,6 +214,7 @@ func TestDetectLinuxTerminal(t *testing.T) {
 	os.Unsetenv("KONSOLE_VERSION")
 	os.Unsetenv("KITTY_WINDOW_ID")
 	os.Unsetenv("ALACRITTY_SOCKET")
+	os.Unsetenv("GHOSTTY_RESOURCES_DIR")
 
 	tests := []struct {
 		name     string
@@ -263,6 +271,20 @@ func TestDetectLinuxTerminal(t *testing.T) {
 			expected: TerminalAlacritty,
 		},
 		{
+			name: "Ghostty via TERM_PROGRAM",
+			setup: func() {
+				os.Setenv("TERM_PROGRAM", "ghostty")
+			},
+			expected: TerminalGhostty,
+		},
+		{
+			name: "Ghostty via GHOSTTY_RESOURCES_DIR",
+			setup: func() {
+				os.Setenv("GHOSTTY_RESOURCES_DIR", "/usr/share/ghostty")
+			},
+			expected: TerminalGhostty,
+		},
+		{
 			name:     "Unknown terminal",
 			setup:    func() {},
 			expected: TerminalUnknown,
@@ -278,6 +300,7 @@ func TestDetectLinuxTerminal(t *testing.T) {
 			os.Unsetenv("KONSOLE_VERSION")
 			os.Unsetenv("KITTY_WINDOW_ID")
 			os.Unsetenv("ALACRITTY_SOCKET")
+			os.Unsetenv("GHOSTTY_RESOURCES_DIR")
 
 			tc.setup()
 			result := detectLinuxTerminal()

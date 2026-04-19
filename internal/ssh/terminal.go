@@ -21,6 +21,7 @@ const (
 	TerminalGNOMETerminal  TerminalType = "gnome-terminal"
 	TerminalKonsole        TerminalType = "konsole"
 	TerminalKitty          TerminalType = "kitty"
+	TerminalGhostty        TerminalType = "ghostty"
 )
 
 // DetectTerminal detects the current terminal emulator.
@@ -61,6 +62,8 @@ func parseTerminalType(s string) TerminalType {
 		return TerminalKonsole
 	case "kitty":
 		return TerminalKitty
+	case "ghostty":
+		return TerminalGhostty
 	default:
 		return TerminalUnknown
 	}
@@ -80,6 +83,8 @@ func detectMacOSTerminal() TerminalType {
 		return TerminalAlacritty
 	case "kitty":
 		return TerminalKitty
+	case "ghostty":
+		return TerminalGhostty
 	}
 
 	// Check for Warp via LC_TERMINAL
@@ -106,7 +111,14 @@ func detectLinuxTerminal() TerminalType {
 			return TerminalWarp
 		case "kitty":
 			return TerminalKitty
+		case "ghostty":
+			return TerminalGhostty
 		}
+	}
+
+	// Ghostty sets GHOSTTY_RESOURCES_DIR in its shell integration
+	if os.Getenv("GHOSTTY_RESOURCES_DIR") != "" {
+		return TerminalGhostty
 	}
 
 	// Check GNOME Terminal
@@ -150,7 +162,8 @@ func detectWindowsTerminal() TerminalType {
 func (t TerminalType) SupportsNewTab() bool {
 	switch t {
 	case TerminalAppleTerminal, TerminalITerm2, TerminalWarp,
-		TerminalWindowsTerminal, TerminalGNOMETerminal, TerminalKonsole, TerminalKitty:
+		TerminalWindowsTerminal, TerminalGNOMETerminal, TerminalKonsole, TerminalKitty,
+		TerminalGhostty:
 		return true
 	case TerminalAlacritty:
 		// Alacritty doesn't support tabs, but can open new windows
@@ -179,6 +192,8 @@ func (t TerminalType) String() string {
 		return "Konsole"
 	case TerminalKitty:
 		return "Kitty"
+	case TerminalGhostty:
+		return "Ghostty"
 	default:
 		return "Unknown"
 	}
@@ -204,6 +219,8 @@ func (t TerminalType) OpenNewTab(command string) error {
 		return openKonsoleTab(command)
 	case TerminalKitty:
 		return openKittyTab(command)
+	case TerminalGhostty:
+		return openGhosttyTab(command)
 	default:
 		return fmt.Errorf("terminal %q does not support opening new tabs", t)
 	}
@@ -274,6 +291,32 @@ func openKonsoleTab(command string) error {
 
 func openKittyTab(command string) error {
 	return exec.Command("kitty", "@", "new-window", "--", "sh", "-c", command).Start()
+}
+
+func openGhosttyTab(command string) error {
+	// Ghostty has no AppleScript "do script" equivalent, so on macOS we
+	// activate the app and drive a new tab via System Events: Cmd+T, type
+	// the command, press Return. Requires Accessibility permission for
+	// whichever process is running hop (same constraint as the Warp path).
+	if runtime.GOOS == "darwin" {
+		script := fmt.Sprintf(`
+			tell application "Ghostty"
+				activate
+			end tell
+			delay 0.2
+			tell application "System Events"
+				keystroke "t" using command down
+				delay 0.3
+				keystroke "%s"
+				keystroke return
+			end tell
+		`, escapeAppleScript(command))
+
+		return exec.Command("osascript", "-e", script).Run()
+	}
+
+	// Linux / other: spawn a new Ghostty window running the command.
+	return exec.Command("ghostty", "-e", "sh", "-c", command).Start()
 }
 
 func escapeAppleScript(s string) string {
