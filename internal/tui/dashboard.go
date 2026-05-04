@@ -99,6 +99,8 @@ func NewModel(cfg *config.Config, version string) Model {
 		history = &config.History{}
 	}
 
+	InitTheme(cfg)
+
 	healthEnabled := cfg.Defaults.HealthCheckEnabled()
 	healthStatus := make(map[string]health.Status)
 	if healthEnabled {
