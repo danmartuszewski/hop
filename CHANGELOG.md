@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.7.0](https://github.com/danmartuszewski/hop/compare/v1.6.0...v1.7.0) (2026-05-05)
+
+
+### Features
+
+* **tui:** add bundled theme presets with live picker ([fc41c39](https://github.com/danmartuszewski/hop/commit/fc41c39341a2bfbaf9c76a19676587fd0eddfdfa))
+* **tui:** group dashboard footer shortcuts onto two lines ([754985f](https://github.com/danmartuszewski/hop/commit/754985f21e34ff349d8e5de7184f634184d71b98))
+
 ## [1.6.0](https://github.com/danmartuszewski/hop/compare/v1.5.0...v1.6.0) (2026-05-05)
 
 
