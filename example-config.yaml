@@ -1,5 +1,33 @@
 version: 1
 
+# Optional theme overrides. `theme:` is the shared base palette applied
+# to both dark and light terminals. `theme_dark:` and `theme_light:`
+# layer on top of it for their respective backgrounds and only need to
+# list the colors that differ. Any color not set at any layer keeps the
+# built-in default.
+#
+# Color values accept either an ANSI 256 code as a quoted number (e.g. "39")
+# or a hex string (e.g. "#bd93f9"). ANSI codes adapt to your terminal's
+# palette; hex values are absolute.
+#
+# All available keys (default values shown):
+# theme:
+#   primary: "39"      # headers, titles, selected items, help keys
+#   secondary: "245"   # borders, version, host, footer text
+#   accent: "212"      # project labels, tag highlights
+#   success: "82"      # user, healthy hosts
+#   warning: "214"     # environment labels
+#   error: "196"       # unreachable hosts
+#   muted: "240"       # port numbers, low-emphasis text
+#   selection: "236"   # tag pill background
+#   foreground: "255"  # filter input text
+#
+# Override only what you need; for example:
+# theme_dark:
+#   primary: "39"
+# theme_light:
+#   primary: "#0066cc"
+
 defaults:
   user: deploy
   port: 22

@@ -10,6 +10,9 @@ import (
 
 type Config struct {
 	Version     int                 `yaml:"version"`
+	Theme       map[string]string   `yaml:"theme,omitempty"`
+	ThemeDark   map[string]string   `yaml:"theme_dark,omitempty"`
+	ThemeLight  map[string]string   `yaml:"theme_light,omitempty"`
 	Defaults    Defaults            `yaml:"defaults,omitempty"`
 	Connections []Connection        `yaml:"connections"`
 	Groups      map[string][]string `yaml:"groups,omitempty"`

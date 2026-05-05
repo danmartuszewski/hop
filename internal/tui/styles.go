@@ -3,101 +3,142 @@ package tui
 import "github.com/charmbracelet/lipgloss"
 
 var (
-	// Colors
-	primaryColor   = lipgloss.Color("39")  // Cyan
-	secondaryColor = lipgloss.Color("245") // Gray
-	accentColor    = lipgloss.Color("212") // Pink
-	successColor   = lipgloss.Color("82")  // Green
-	warningColor   = lipgloss.Color("214") // Orange
-
 	// Header
-	headerStyle = lipgloss.NewStyle().
-			Bold(true).
-			Foreground(primaryColor).
-			BorderStyle(lipgloss.NormalBorder()).
-			BorderBottom(true).
-			BorderForeground(secondaryColor).
-			Padding(0, 1)
+	headerStyle lipgloss.Style
 
-	titleStyle = lipgloss.NewStyle().
-			Bold(true).
-			Foreground(primaryColor)
+	titleStyle lipgloss.Style
 
-	versionStyle = lipgloss.NewStyle().
-			Foreground(secondaryColor)
+	versionStyle lipgloss.Style
 
 	// Filter
-	filterPromptStyle = lipgloss.NewStyle().
-				Foreground(primaryColor).
-				Bold(true)
+	filterPromptStyle lipgloss.Style
 
-	filterInputStyle = lipgloss.NewStyle().
-				Foreground(lipgloss.Color("255"))
+	filterInputStyle lipgloss.Style
 
 	// List items
-	itemStyle = lipgloss.NewStyle().
-			PaddingLeft(2)
+	itemStyle lipgloss.Style
 
-	selectedItemStyle = lipgloss.NewStyle().
-				PaddingLeft(1).
-				Foreground(primaryColor).
-				Bold(true)
+	selectedItemStyle lipgloss.Style
 
-	projectStyle = lipgloss.NewStyle().
-			Bold(true).
-			Foreground(accentColor)
+	projectStyle lipgloss.Style
 
-	envStyle = lipgloss.NewStyle().
-			Foreground(warningColor)
+	envStyle lipgloss.Style
 
-	hostStyle = lipgloss.NewStyle().
-			Foreground(secondaryColor)
+	hostStyle lipgloss.Style
 
-	userStyle = lipgloss.NewStyle().
-			Foreground(successColor)
+	userStyle lipgloss.Style
 
-	portStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("240"))
+	portStyle lipgloss.Style
 
 	// Footer
-	footerStyle = lipgloss.NewStyle().
-			BorderStyle(lipgloss.NormalBorder()).
-			BorderTop(true).
-			BorderForeground(secondaryColor).
-			Foreground(secondaryColor).
-			Padding(0, 1)
+	footerStyle lipgloss.Style
 
-	helpKeyStyle = lipgloss.NewStyle().
-			Foreground(primaryColor).
-			Bold(true)
+	helpKeyStyle lipgloss.Style
 
-	helpDescStyle = lipgloss.NewStyle().
-			Foreground(secondaryColor)
+	helpDescStyle lipgloss.Style
 
 	// Status
-	statusStyle = lipgloss.NewStyle().
-			Foreground(secondaryColor).
-			Italic(true)
+	statusStyle lipgloss.Style
 
 	// Empty state
-	emptyStyle = lipgloss.NewStyle().
-			Foreground(secondaryColor).
-			Italic(true).
-			Padding(2, 4)
+	emptyStyle lipgloss.Style
 
 	// Tag style (used in filter bar and tag picker)
-	panelTagStyle = lipgloss.NewStyle().
-			Foreground(accentColor).
-			Background(lipgloss.Color("236")).
-			Padding(0, 1)
+	panelTagStyle lipgloss.Style
 
 	// Health check indicators
+	healthReachableStyle lipgloss.Style
+
+	healthUnreachableStyle lipgloss.Style
+
+	healthCheckingStyle lipgloss.Style
+)
+
+func init() {
+	refreshStyles()
+}
+
+func refreshStyles() {
+	headerStyle = lipgloss.NewStyle().
+		Bold(true).
+		Foreground(currentTheme.Primary).
+		BorderStyle(lipgloss.NormalBorder()).
+		BorderBottom(true).
+		BorderForeground(currentTheme.Secondary).
+		Padding(0, 1)
+
+	titleStyle = lipgloss.NewStyle().
+		Bold(true).
+		Foreground(currentTheme.Primary)
+
+	versionStyle = lipgloss.NewStyle().
+		Foreground(currentTheme.Secondary)
+
+	filterPromptStyle = lipgloss.NewStyle().
+		Foreground(currentTheme.Primary).
+		Bold(true)
+
+	filterInputStyle = lipgloss.NewStyle().
+		Foreground(currentTheme.Foreground)
+
+	itemStyle = lipgloss.NewStyle().
+		PaddingLeft(2)
+
+	selectedItemStyle = lipgloss.NewStyle().
+		PaddingLeft(1).
+		Foreground(currentTheme.Primary).
+		Bold(true)
+
+	projectStyle = lipgloss.NewStyle().
+		Bold(true).
+		Foreground(currentTheme.Accent)
+
+	envStyle = lipgloss.NewStyle().
+		Foreground(currentTheme.Warning)
+
+	hostStyle = lipgloss.NewStyle().
+		Foreground(currentTheme.Secondary)
+
+	userStyle = lipgloss.NewStyle().
+		Foreground(currentTheme.Success)
+
+	portStyle = lipgloss.NewStyle().
+		Foreground(currentTheme.Muted)
+
+	footerStyle = lipgloss.NewStyle().
+		BorderStyle(lipgloss.NormalBorder()).
+		BorderTop(true).
+		BorderForeground(currentTheme.Secondary).
+		Foreground(currentTheme.Secondary).
+		Padding(0, 1)
+
+	helpKeyStyle = lipgloss.NewStyle().
+		Foreground(currentTheme.Primary).
+		Bold(true)
+
+	helpDescStyle = lipgloss.NewStyle().
+		Foreground(currentTheme.Secondary)
+
+	statusStyle = lipgloss.NewStyle().
+		Foreground(currentTheme.Secondary).
+		Italic(true)
+
+	emptyStyle = lipgloss.NewStyle().
+		Foreground(currentTheme.Secondary).
+		Italic(true).
+		Padding(2, 4)
+
+	panelTagStyle = lipgloss.NewStyle().
+		Foreground(currentTheme.Accent).
+		Background(currentTheme.Selection).
+		Padding(0, 1)
+
 	healthReachableStyle = lipgloss.NewStyle().
-				Foreground(successColor)
+		Foreground(currentTheme.Success)
 
 	healthUnreachableStyle = lipgloss.NewStyle().
-				Foreground(lipgloss.Color("196"))
+		Foreground(currentTheme.Error)
 
 	healthCheckingStyle = lipgloss.NewStyle().
-				Foreground(secondaryColor)
-)
+		Foreground(currentTheme.Secondary)
+}
