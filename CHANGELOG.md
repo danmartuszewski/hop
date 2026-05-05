@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.6.0](https://github.com/danmartuszewski/hop/compare/v1.5.0...v1.6.0) (2026-05-05)
+
+
+### Features
+
+* **tui:** Add configurable theme and custom color palette support ([#20](https://github.com/danmartuszewski/hop/issues/20)) ([67046e1](https://github.com/danmartuszewski/hop/commit/67046e1014bc1d8fc56897aba141eb3678b33bb7))
+
+
+### Bug Fixes
+
+* **tui:** restore warning color in import view ([7e1324e](https://github.com/danmartuszewski/hop/commit/7e1324edb58df4620dfb6da24bfc2ac2b3d36720))
+
 ## [1.5.0](https://github.com/danmartuszewski/hop/compare/v1.4.0...v1.5.0) (2026-04-19)
 
 
