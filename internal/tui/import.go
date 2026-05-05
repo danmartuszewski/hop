@@ -305,5 +305,3 @@ func (m ImportModel) Error() error {
 	return m.err
 }
 
-// Add warningStyle if not already defined
-var warningStyle = envStyle // Reuse the orange env style for warnings

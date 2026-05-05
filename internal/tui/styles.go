@@ -46,6 +46,9 @@ var (
 	// Tag style (used in filter bar and tag picker)
 	panelTagStyle lipgloss.Style
 
+	// Warning style (used for renamed entries in the import view)
+	warningStyle lipgloss.Style
+
 	// Health check indicators
 	healthReachableStyle lipgloss.Style
 
@@ -132,6 +135,9 @@ func refreshStyles() {
 		Foreground(currentTheme.Accent).
 		Background(currentTheme.Selection).
 		Padding(0, 1)
+
+	warningStyle = lipgloss.NewStyle().
+		Foreground(currentTheme.Warning)
 
 	healthReachableStyle = lipgloss.NewStyle().
 		Foreground(currentTheme.Success)
