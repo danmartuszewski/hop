@@ -1,16 +1,35 @@
 version: 1
 
-# Optional theme overrides. `theme:` is the shared base palette applied
-# to both dark and light terminals. `theme_dark:` and `theme_light:`
-# layer on top of it for their respective backgrounds and only need to
-# list the colors that differ. Any color not set at any layer keeps the
-# built-in default.
+# Pick a bundled palette. Press T in the dashboard to browse with live
+# preview — pressing enter writes the choice back here. Each theme ships a
+# dark and a light variant; pick whichever you prefer regardless of your
+# terminal's actual background.
+#
+# Available presets:
+#   default-dark, default-light,
+#   everforest-dark, everforest-light,
+#   gruvbox-dark, gruvbox-light,
+#   catppuccin-mocha, catppuccin-latte,
+#   tokyo-night-storm, tokyo-night-day,
+#   solarized-dark, solarized-light,
+#   nord, nord-light,
+#   dracula, alucard
+#
+# Leave unset to auto-pick default-dark or default-light based on your
+# terminal background.
+# theme_preset: everforest-dark
+
+# Optional fine-grained overrides. These layer on top of the selected
+# preset, so you only need to list the colors you want to change.
+# `theme:` applies to every preset; `theme_dark:` only applies when the
+# selected preset is a dark variant; `theme_light:` only when it's a light
+# variant.
 #
 # Color values accept either an ANSI 256 code as a quoted number (e.g. "39")
 # or a hex string (e.g. "#bd93f9"). ANSI codes adapt to your terminal's
 # palette; hex values are absolute.
 #
-# All available keys (default values shown):
+# All available keys (default-dark values shown):
 # theme:
 #   primary: "39"      # headers, titles, selected items, help keys
 #   secondary: "245"   # borders, version, host, footer text

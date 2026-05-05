@@ -202,6 +202,7 @@ hop connect <id>      # connect by exact ID
 | `d` | Delete selected |
 | `x` | Export connections to YAML |
 | `y` | Copy SSH command |
+| `T` | Open theme picker |
 | `?` | Show help |
 | `q` | Quit |
 
@@ -271,6 +272,47 @@ hop export --id web-1,web-2              # Export specific connections
 ```
 
 At least one filter flag or `--all` is required. Filters combine with AND logic.
+
+### Theming
+
+The dashboard ships with sixteen color presets — each popular theme has both a dark and a light variant, listed separately so you can pick whichever you want regardless of your terminal background. Press `T` to browse them with live preview: `↑/↓` to navigate, `Enter` to save the choice into your config, `Esc` to revert.
+
+| Family | Dark | Light |
+|---|---|---|
+| Built-in hop | `default-dark` | `default-light` |
+| Everforest | `everforest-dark` | `everforest-light` |
+| Gruvbox | `gruvbox-dark` | `gruvbox-light` |
+| Catppuccin | `catppuccin-mocha` | `catppuccin-latte` |
+| Tokyo Night | `tokyo-night-storm` | `tokyo-night-day` |
+| Solarized | `solarized-dark` | `solarized-light` |
+| Nord | `nord` | `nord-light` |
+| Dracula | `dracula` | `alucard` |
+
+Picking a preset writes a single line to your config:
+
+```yaml
+theme_preset: everforest-dark
+```
+
+When `theme_preset` is unset, hop auto-picks `default-dark` or `default-light` based on your terminal background.
+
+#### Custom overrides
+
+Layer your own colors on top of any preset:
+
+```yaml
+theme_preset: everforest-dark   # optional; omit to auto-pick default
+theme:                          # applies to every preset
+  primary: "#0066cc"
+theme_dark:                     # only applies when the preset is a dark variant
+  selection: "#1f1f28"
+theme_light:                    # only applies when the preset is a light variant
+  foreground: "#1c1f24"
+```
+
+Color values can be either a quoted ANSI 256 code (`"39"`) or a hex string (`"#bd93f9"`). ANSI codes adapt to your terminal's palette; hex values are absolute.
+
+Available keys: `primary`, `secondary`, `accent`, `success`, `warning`, `error`, `muted`, `selection`, `foreground`. Any key you don't set falls through to the preset, then to the built-in default.
 
 ## CLI Commands
 

@@ -19,8 +19,9 @@ type Theme struct {
 	Foreground lipgloss.Color
 }
 
-// defaultTheme preserves the original palette from styles.go.
-// It is used whenever no matching theme override is configured.
+// defaultTheme preserves the original palette from styles.go and backs the
+// "default-dark" preset. It is also the final fallback when both the
+// configured preset and the auto-detected default are missing.
 var defaultTheme = Theme{
 	Primary:    lipgloss.Color("39"),  // Cyan
 	Secondary:  lipgloss.Color("245"), // Gray
@@ -35,25 +36,76 @@ var defaultTheme = Theme{
 
 var currentTheme = defaultTheme
 
-// InitTheme picks a palette based on the terminal background and the
-// theme / theme_dark / theme_light maps in the config. theme is the
-// shared base; theme_dark and theme_light layer on top of it for their
-// respective backgrounds. Each layer only overrides the keys it
-// defines; missing keys fall through to the layer below, ending at the
-// built-in default palette.
+// InitTheme picks a palette based on the configured preset and any user
+// overrides. Precedence (low to high):
+//
+//  1. Selected preset's palette
+//  2. cfg.Theme (shared overrides)
+//  3. cfg.ThemeDark or cfg.ThemeLight (only the one matching the preset's
+//     light/dark classification)
+//
+// When theme_preset is unset, the default is auto-selected based on the
+// terminal background (default-dark or default-light). Unknown preset names
+// fall back to default-dark.
 func InitTheme(cfg *config.Config) {
-	shared, dark, light := cfg.Theme, cfg.ThemeDark, cfg.ThemeLight
+	currentTheme = resolveTheme(cfg)
+	refreshStyles()
+}
 
-	t := defaultTheme
-	if lipgloss.HasDarkBackground() {
-		t = applyOverrides(t, shared)
-		t = applyOverrides(t, dark)
+// resolveTheme builds the Theme that InitTheme would apply, without mutating
+// global state. Exported for testing and the live-preview picker.
+func resolveTheme(cfg *config.Config) Theme {
+	preset := selectPreset(cfg.ThemePreset)
+	t := preset.Theme
+	t = applyOverrides(t, cfg.Theme)
+	if preset.IsLight {
+		t = applyOverrides(t, cfg.ThemeLight)
 	} else {
-		t = applyOverrides(t, shared)
-		t = applyOverrides(t, light)
+		t = applyOverrides(t, cfg.ThemeDark)
 	}
+	return t
+}
 
-	currentTheme = t
+// selectPreset returns the preset matching name. If name is empty, the
+// default preset for the current terminal background is returned. Unknown
+// names also fall back to the default-dark preset.
+func selectPreset(name string) *Preset {
+	if name == "" {
+		if lipgloss.HasDarkBackground() {
+			if p := FindPreset(DefaultDarkPresetName); p != nil {
+				return p
+			}
+		} else {
+			if p := FindPreset(DefaultLightPresetName); p != nil {
+				return p
+			}
+		}
+	}
+	if p := FindPreset(name); p != nil {
+		return p
+	}
+	if p := FindPreset(DefaultDarkPresetName); p != nil {
+		return p
+	}
+	// Should not happen — presetList always contains default-dark — but
+	// keep the binary working if someone strips the registry.
+	return &Preset{Name: DefaultDarkPresetName, Theme: defaultTheme}
+}
+
+// previewPreset temporarily swaps the active theme to show how a preset would
+// render with the user's overrides on top. Used by the theme picker for live
+// preview; revert by calling restoreTheme with the snapshot taken before the
+// first preview call.
+func previewPreset(cfg *config.Config, presetName string) {
+	cfgCopy := *cfg
+	cfgCopy.ThemePreset = presetName
+	currentTheme = resolveTheme(&cfgCopy)
+	refreshStyles()
+}
+
+// restoreTheme replaces the active theme with a snapshot and refreshes styles.
+func restoreTheme(snapshot Theme) {
+	currentTheme = snapshot
 	refreshStyles()
 }
 

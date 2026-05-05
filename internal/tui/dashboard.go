@@ -28,6 +28,7 @@ const (
 	viewTagPicker
 	viewImport
 	viewExport
+	viewThemePicker
 )
 
 type sshFinishedMsg struct {
@@ -77,6 +78,8 @@ type Model struct {
 	importModel ImportModel
 	// Export modal
 	exportModel ExportModel
+	// Theme picker modal
+	themePickerModel ThemePickerModel
 	// Health checks
 	healthStatus  map[string]health.Status
 	healthEnabled bool
@@ -401,6 +404,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m.updateImport(msg)
 	case viewExport:
 		return m.updateExport(msg)
+	case viewThemePicker:
+		return m.updateThemePicker(msg)
 	default:
 		return m.updateList(msg)
 	}
@@ -600,6 +605,10 @@ func (m Model) updateList(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 			m.importModel = NewImportModel(existingIDs, "", m.configPath, m.width, m.height)
 			m.view = viewImport
+			return m, nil
+		case "T":
+			m.themePickerModel = NewThemePickerModel(m.config, m.width, m.height)
+			m.view = viewThemePicker
 			return m, nil
 		}
 	}
@@ -916,6 +925,35 @@ func (m Model) updateExport(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, cmd
 }
 
+func (m Model) updateThemePicker(msg tea.Msg) (tea.Model, tea.Cmd) {
+	var cmd tea.Cmd
+	m.themePickerModel, cmd = m.themePickerModel.Update(msg)
+
+	if m.themePickerModel.Cancelled() {
+		m.view = viewList
+		return m, nil
+	}
+
+	if m.themePickerModel.Confirmed() {
+		preset := m.themePickerModel.SelectedPreset()
+		previous := m.config.ThemePreset
+		m.config.ThemePreset = preset
+		if err := m.config.Save(m.configPath); err != nil {
+			// Revert config + theme on save failure so the on-disk state and
+			// the in-memory state stay in sync.
+			m.config.ThemePreset = previous
+			restoreTheme(m.themePickerModel.Original())
+			m.statusMsg = "Failed to save theme: " + err.Error()
+		} else {
+			m.statusMsg = fmt.Sprintf("Theme set to %s", preset)
+		}
+		m.view = viewList
+		return m, nil
+	}
+
+	return m, cmd
+}
+
 func (m Model) View() string {
 	if m.quitting {
 		return ""
@@ -936,6 +974,8 @@ func (m Model) View() string {
 		return m.importModel.View()
 	case viewExport:
 		return m.exportModel.View()
+	case viewThemePicker:
+		return m.themePickerModel.View()
 	default:
 		return m.renderList()
 	}
@@ -1169,6 +1209,7 @@ func (m Model) renderFooter() string {
 	keys = append(keys, helpKeyStyle.Render("x")+" "+helpDescStyle.Render("export"))
 	keys = append(keys, helpKeyStyle.Render("e")+" "+helpDescStyle.Render("edit"))
 	keys = append(keys, helpKeyStyle.Render("d")+" "+helpDescStyle.Render("del"))
+	keys = append(keys, helpKeyStyle.Render("T")+" "+helpDescStyle.Render("theme"))
 	keys = append(keys, helpKeyStyle.Render("enter")+" "+helpDescStyle.Render("connect"))
 	keys = append(keys, helpKeyStyle.Render("?")+" "+helpDescStyle.Render("help"))
 

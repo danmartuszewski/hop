@@ -10,6 +10,7 @@ import (
 
 type Config struct {
 	Version     int                 `yaml:"version"`
+	ThemePreset string              `yaml:"theme_preset,omitempty"`
 	Theme       map[string]string   `yaml:"theme,omitempty"`
 	ThemeDark   map[string]string   `yaml:"theme_dark,omitempty"`
 	ThemeLight  map[string]string   `yaml:"theme_light,omitempty"`

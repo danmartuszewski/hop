@@ -68,7 +68,8 @@ func (m HelpModel) View() string {
 			title: "General",
 			keys: [][]string{
 				{"i", "Import from SSH config"},
-			{"?", "Toggle this help"},
+				{"T", "Change color theme"},
+				{"?", "Toggle this help"},
 				{"q", "Quit"},
 				{"ctrl+c", "Force quit"},
 			},
