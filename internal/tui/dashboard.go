@@ -1194,26 +1194,41 @@ func (m Model) renderListContent() string {
 }
 
 func (m Model) renderFooter() string {
-	var keys []string
+	key := func(k, label string) string {
+		return helpKeyStyle.Render(k) + " " + helpDescStyle.Render(label)
+	}
 
-	keys = append(keys, helpKeyStyle.Render("↑/↓")+" "+helpDescStyle.Render("nav"))
-	keys = append(keys, helpKeyStyle.Render("/")+" "+helpDescStyle.Render("filter"))
-	keys = append(keys, helpKeyStyle.Render("t")+" "+helpDescStyle.Render("tags"))
 	recentLabel := "recent"
 	if m.sortByRecent {
 		recentLabel = "recent*"
 	}
-	keys = append(keys, helpKeyStyle.Render("r")+" "+helpDescStyle.Render(recentLabel))
-	keys = append(keys, helpKeyStyle.Render("a")+" "+helpDescStyle.Render("add"))
-	keys = append(keys, helpKeyStyle.Render("i")+" "+helpDescStyle.Render("import"))
-	keys = append(keys, helpKeyStyle.Render("x")+" "+helpDescStyle.Render("export"))
-	keys = append(keys, helpKeyStyle.Render("e")+" "+helpDescStyle.Render("edit"))
-	keys = append(keys, helpKeyStyle.Render("d")+" "+helpDescStyle.Render("del"))
-	keys = append(keys, helpKeyStyle.Render("T")+" "+helpDescStyle.Render("theme"))
-	keys = append(keys, helpKeyStyle.Render("enter")+" "+helpDescStyle.Render("connect"))
-	keys = append(keys, helpKeyStyle.Render("?")+" "+helpDescStyle.Render("help"))
 
-	return footerStyle.Width(m.width).Render(strings.Join(keys, "  "))
+	browse := []string{
+		key("↑/↓", "nav"),
+		key("/", "filter"),
+		key("t", "tags"),
+		key("r", recentLabel),
+	}
+	primary := []string{
+		key("enter", "connect"),
+		key("?", "help"),
+	}
+	manage := []string{
+		key("a", "add"),
+		key("e", "edit"),
+		key("d", "del"),
+		key("i", "import"),
+		key("x", "export"),
+	}
+	app := []string{
+		key("T", "theme"),
+	}
+
+	sep := helpDescStyle.Render("  │  ")
+	line1 := strings.Join(browse, "  ") + sep + strings.Join(primary, "  ")
+	line2 := strings.Join(manage, "  ") + sep + strings.Join(app, "  ")
+
+	return footerStyle.Width(m.width).Render(line1 + "\n" + line2)
 }
 
 func (m Model) renderHelp() string {
