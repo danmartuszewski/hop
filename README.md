@@ -50,6 +50,48 @@ git clone https://github.com/danmartuszewski/hop.git && cd hop && make build
 ./bin/hop
 ```
 
+### Install with an AI agent
+
+Using Claude Code, Codex, Cursor, or another coding agent? Paste the block below into your agent and it will pick the right install path for your machine, register hop's MCP server, and verify the install.
+
+```text
+Install hop on this machine and register its MCP server. Do the steps in order;
+stop and report on the first failure.
+
+1. Pick ONE install method, in this priority:
+   a. Homebrew (macOS or Linux):
+        brew install danmartuszewski/tap/hop
+   b. Go 1.22+ available:
+        go install github.com/danmartuszewski/hop/cmd/hop@latest
+   c. From source (no brew, no Go on PATH):
+        git clone https://github.com/danmartuszewski/hop.git && cd hop && make install
+
+2. Verify the binary is on PATH:
+        hop version
+
+3. Register the MCP server with whichever agent the user is running. Skip
+   clients the user does not use:
+   - Claude Code:  claude mcp add hop -- hop mcp
+   - Codex CLI:    codex mcp add hop -- hop mcp
+   - Claude Desktop / Cursor / Windsurf — add to the client's MCP config:
+        { "hop": { "command": "hop", "args": ["mcp"] } }
+
+4. (Optional) Seed the config from the user's existing SSH config. Preview
+   first; --yes is required for a non-interactive run:
+        hop import --dry-run
+        hop import --yes
+
+5. Confirm hop's MCP tools are reachable from the agent (e.g. list_connections).
+
+Constraints:
+- Do NOT run bare `hop` — it launches an interactive TUI and will hang a
+  non-interactive session. Use subcommands (`hop version`, `hop list`, …).
+- Do NOT modify ~/.ssh/config. hop reads it via `hop import` only.
+- Do NOT commit secrets or identity files.
+
+After step 3, restart the agent so it picks up the new MCP server.
+```
+
 ## Features
 
 - **Fuzzy matching** - Type `hop prod` to connect to `app-server-prod-03`
