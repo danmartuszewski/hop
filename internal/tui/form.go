@@ -17,6 +17,7 @@ const (
 	fieldHost
 	fieldUser
 	fieldPort
+	fieldIdentity
 	fieldProject
 	fieldEnv
 	fieldTags
@@ -29,6 +30,7 @@ type FormModel struct {
 	title      string
 	editing    bool
 	originalID string
+	original   config.Connection
 	width      int
 	height     int
 	cancelled  bool
@@ -51,6 +53,8 @@ func NewFormModel(title string, conn *config.Connection) FormModel {
 			// optional
 		case fieldPort:
 			// Port will be pre-filled with 22
+		case fieldIdentity:
+			// optional - path to a private key
 		case fieldProject:
 			// optional
 		case fieldEnv:
@@ -73,12 +77,14 @@ func NewFormModel(title string, conn *config.Connection) FormModel {
 	if conn != nil {
 		m.editing = true
 		m.originalID = conn.ID
+		m.original = *conn
 		m.inputs[fieldID].SetValue(conn.ID)
 		m.inputs[fieldHost].SetValue(conn.Host)
 		m.inputs[fieldUser].SetValue(conn.User)
 		if conn.Port != 0 {
 			m.inputs[fieldPort].SetValue(strconv.Itoa(conn.Port))
 		}
+		m.inputs[fieldIdentity].SetValue(conn.IdentityFile)
 		m.inputs[fieldProject].SetValue(conn.Project)
 		m.inputs[fieldEnv].SetValue(conn.Env)
 		if len(conn.Tags) > 0 {
@@ -152,7 +158,7 @@ func (m FormModel) View() string {
 	b.WriteString("\n\n")
 
 	// Form fields
-	labels := []string{"ID:", "Host:", "User:", "Port:", "Project:", "Env:", "Tags:"}
+	labels := []string{"ID:", "Host:", "User:", "Port:", "Identity:", "Project:", "Env:", "Tags:"}
 
 	for i, label := range labels {
 		style := helpDescStyle
@@ -163,8 +169,12 @@ func (m FormModel) View() string {
 		b.WriteString(style.Render(fmt.Sprintf("%-10s", label)))
 		b.WriteString(m.inputs[i].View())
 
-		// Add hint for Tags field
-		if formField(i) == fieldTags {
+		// Add hints for fields that benefit from clarification
+		switch formField(i) {
+		case fieldIdentity:
+			b.WriteString(" ")
+			b.WriteString(helpDescStyle.Render("(path to private key)"))
+		case fieldTags:
 			b.WriteString(" ")
 			b.WriteString(helpDescStyle.Render("(comma-separated)"))
 		}
@@ -214,15 +224,19 @@ func (m FormModel) GetConnection() (*config.Connection, error) {
 		}
 	}
 
-	return &config.Connection{
-		ID:      id,
-		Host:    host,
-		User:    strings.TrimSpace(m.inputs[fieldUser].Value()),
-		Port:    port,
-		Project: strings.TrimSpace(m.inputs[fieldProject].Value()),
-		Env:     strings.TrimSpace(m.inputs[fieldEnv].Value()),
-		Tags:    tags,
-	}, nil
+	// Start from the original connection so fields not exposed in the form
+	// (proxy jump, agent forwarding, mosh, extra options) are preserved when
+	// editing or duplicating. For a brand-new connection this is the zero value.
+	conn := m.original
+	conn.ID = id
+	conn.Host = host
+	conn.User = strings.TrimSpace(m.inputs[fieldUser].Value())
+	conn.Port = port
+	conn.IdentityFile = strings.TrimSpace(m.inputs[fieldIdentity].Value())
+	conn.Project = strings.TrimSpace(m.inputs[fieldProject].Value())
+	conn.Env = strings.TrimSpace(m.inputs[fieldEnv].Value())
+	conn.Tags = tags
+	return &conn, nil
 }
 
 func (m FormModel) Cancelled() bool {

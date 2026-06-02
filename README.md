@@ -135,6 +135,7 @@ connections:
   - id: prod-web
     host: web.example.com
     user: deploy
+    identity_file: ~/.ssh/work_key   # Private key for this connection
     project: myapp
     env: production
     tags: [web, prod]
