@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.8.0](https://github.com/danmartuszewski/hop/compare/v1.7.0...v1.8.0) (2026-06-02)
+
+
+### Features
+
+* add identity file field to connection form ([#24](https://github.com/danmartuszewski/hop/issues/24)) ([26ad531](https://github.com/danmartuszewski/hop/commit/26ad531bdbaaf1c92581a7af2a3f0a73ae9039f3))
+
 ## [1.7.0](https://github.com/danmartuszewski/hop/compare/v1.6.0...v1.7.0) (2026-05-05)
 
 
