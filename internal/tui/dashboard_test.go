@@ -574,15 +574,53 @@ func TestDuplicateConnection(t *testing.T) {
 		t.Error("expected form NOT to be in edit mode for duplicate")
 	}
 
-	// Form should have host pre-filled from original but empty ID
-	// The ID field should be empty (requiring user to fill it)
-	if m.form.inputs[fieldID].Value() != "" {
-		t.Errorf("expected empty ID for duplicate, got %s", m.form.inputs[fieldID].Value())
+	// The ID should be pre-filled with a collision-free "-copy" suggestion so
+	// the duplicate can be saved immediately.
+	gotID := m.form.inputs[fieldID].Value()
+	if gotID == "" {
+		t.Error("expected a pre-filled ID for duplicate, got empty")
+	}
+	if !strings.HasSuffix(gotID, "-copy") {
+		t.Errorf("expected suggested ID to end with -copy, got %q", gotID)
+	}
+	if cfg.FindConnection(gotID) != nil {
+		t.Errorf("suggested ID %q collides with an existing connection", gotID)
 	}
 
 	// Host should be copied from original
 	if m.form.inputs[fieldHost].Value() == "" {
 		t.Error("expected host to be copied from original")
+	}
+}
+
+// Saving a new/duplicate connection whose ID collides with an existing one
+// must keep the form open with the entered values intact (not bounce to the
+// list and discard everything), and surface an inline error.
+func TestDuplicateIDCollisionKeepsForm(t *testing.T) {
+	cfg := testConfig()
+	m := NewModel(cfg, "1.0.0")
+
+	// Open the add form and type an ID that already exists.
+	newModel, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'a'}})
+	m = newModel.(Model)
+	m.form.inputs[fieldID].SetValue("prod-server")
+	m.form.inputs[fieldHost].SetValue("new.example.com")
+
+	// Submit with ctrl+s.
+	newModel, _ = m.Update(tea.KeyMsg{Type: tea.KeyCtrlS})
+	m = newModel.(Model)
+
+	if m.view != viewForm {
+		t.Fatalf("expected to stay in viewForm on collision, got %v", m.view)
+	}
+	if m.form.errMsg == "" {
+		t.Error("expected an inline error message on ID collision")
+	}
+	if got := m.form.inputs[fieldHost].Value(); got != "new.example.com" {
+		t.Errorf("expected entered host preserved, got %q", got)
+	}
+	if len(cfg.Connections) != 3 {
+		t.Errorf("expected no connection added on collision, got %d", len(cfg.Connections))
 	}
 }
 

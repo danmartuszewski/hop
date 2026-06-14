@@ -528,12 +528,10 @@ func (m Model) updateList(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 		case "c":
 			if conn := m.selectedConnection(); conn != nil {
-				// Duplicate with empty ID
-				dup := *conn
-				dup.ID = ""
-				m.form = NewFormModel("Duplicate Connection", &dup)
-				m.form.editing = false // Treat as new connection
-				m.form.originalID = ""
+				// Duplicate as a new connection with a collision-free ID
+				// pre-filled so it can be saved immediately.
+				suggestedID := m.config.SuggestDuplicateID(conn.ID)
+				m.form = NewDuplicateFormModel(conn, suggestedID)
 				m.view = viewForm
 				return m, textinput.Blink
 			}
@@ -734,10 +732,12 @@ func (m Model) updateForm(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.config.UpdateConnection(m.form.OriginalID(), *conn)
 			m.statusMsg = fmt.Sprintf("Updated: %s", conn.ID)
 		} else {
-			// Check for duplicate ID
+			// Check for duplicate ID. Keep the form open with the entered
+			// values intact so the user can fix the ID instead of losing
+			// everything they typed.
 			if m.config.FindConnection(conn.ID) != nil {
-				m.statusMsg = fmt.Sprintf("Error: Connection '%s' already exists", conn.ID)
-				m.view = viewList
+				m.form.errMsg = fmt.Sprintf("Connection %q already exists — choose a different ID", conn.ID)
+				m.form.submitted = false
 				return m, nil
 			}
 			m.config.AddConnection(*conn)
@@ -1216,6 +1216,7 @@ func (m Model) renderFooter() string {
 	manage := []string{
 		key("a", "add"),
 		key("e", "edit"),
+		key("c", "dup"),
 		key("d", "del"),
 		key("i", "import"),
 		key("x", "export"),

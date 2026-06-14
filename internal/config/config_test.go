@@ -332,3 +332,77 @@ func TestValidate(t *testing.T) {
 		})
 	}
 }
+
+func TestSuggestDuplicateID(t *testing.T) {
+	tests := []struct {
+		name     string
+		existing []string
+		sourceID string
+		want     string
+	}{
+		{
+			name:     "no collision appends -copy",
+			existing: []string{"web-prod"},
+			sourceID: "web-prod",
+			want:     "web-prod-copy",
+		},
+		{
+			name:     "copy taken falls back to -copy-2",
+			existing: []string{"web-prod", "web-prod-copy"},
+			sourceID: "web-prod",
+			want:     "web-prod-copy-2",
+		},
+		{
+			name:     "copy and copy-2 taken falls back to -copy-3",
+			existing: []string{"web-prod", "web-prod-copy", "web-prod-copy-2"},
+			sourceID: "web-prod",
+			want:     "web-prod-copy-3",
+		},
+		{
+			name:     "source already ends in -copy",
+			existing: []string{"web-copy"},
+			sourceID: "web-copy",
+			want:     "web-copy-copy",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg := &Config{Version: 1}
+			for _, id := range tt.existing {
+				cfg.Connections = append(cfg.Connections, Connection{ID: id, Host: "h"})
+			}
+			if got := cfg.SuggestDuplicateID(tt.sourceID); got != tt.want {
+				t.Errorf("SuggestDuplicateID(%q) = %q, want %q", tt.sourceID, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestConnectionCloneIsDeepCopy(t *testing.T) {
+	mosh := true
+	src := Connection{
+		ID:      "src",
+		Host:    "src.example.com",
+		Tags:    []string{"prod", "web"},
+		Options: map[string]string{"ServerAliveInterval": "60"},
+		UseMosh: &mosh,
+	}
+
+	clone := src.Clone()
+
+	// Mutating the clone's reference fields must not affect the source.
+	clone.Tags[0] = "mutated"
+	clone.Options["ServerAliveInterval"] = "99"
+	*clone.UseMosh = false
+
+	if src.Tags[0] != "prod" {
+		t.Errorf("expected source Tags unchanged, got %v", src.Tags)
+	}
+	if src.Options["ServerAliveInterval"] != "60" {
+		t.Errorf("expected source Options unchanged, got %v", src.Options)
+	}
+	if src.UseMosh == nil || !*src.UseMosh {
+		t.Error("expected source UseMosh unchanged")
+	}
+}

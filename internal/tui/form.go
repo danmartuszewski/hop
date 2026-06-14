@@ -35,6 +35,7 @@ type FormModel struct {
 	height     int
 	cancelled  bool
 	submitted  bool
+	errMsg     string
 }
 
 func NewFormModel(title string, conn *config.Connection) FormModel {
@@ -77,22 +78,46 @@ func NewFormModel(title string, conn *config.Connection) FormModel {
 	if conn != nil {
 		m.editing = true
 		m.originalID = conn.ID
-		m.original = *conn
-		m.inputs[fieldID].SetValue(conn.ID)
-		m.inputs[fieldHost].SetValue(conn.Host)
-		m.inputs[fieldUser].SetValue(conn.User)
-		if conn.Port != 0 {
-			m.inputs[fieldPort].SetValue(strconv.Itoa(conn.Port))
-		}
-		m.inputs[fieldIdentity].SetValue(conn.IdentityFile)
-		m.inputs[fieldProject].SetValue(conn.Project)
-		m.inputs[fieldEnv].SetValue(conn.Env)
-		if len(conn.Tags) > 0 {
-			m.inputs[fieldTags].SetValue(strings.Join(conn.Tags, ", "))
-		}
+		m.original = conn.Clone()
+		fillInputs(m.inputs, conn)
 	}
 
 	return m
+}
+
+// NewDuplicateFormModel builds a form pre-filled from src for creating a copy
+// of an existing connection. Unlike the edit form, it is not in editing mode:
+// the result is saved as a brand-new connection. The ID is pre-filled with a
+// collision-free suggestion (e.g. "web-prod-copy") so the user can save
+// immediately, and the original connection is deep-cloned so the copy shares no
+// mutable state (Tags, Options, UseMosh) with the source.
+func NewDuplicateFormModel(src *config.Connection, suggestedID string) FormModel {
+	dup := src.Clone()
+	dup.ID = suggestedID
+
+	m := NewFormModel(fmt.Sprintf("Add Connection — copy of %q", src.ID), nil)
+	m.original = dup
+	fillInputs(m.inputs, &dup)
+
+	return m
+}
+
+// fillInputs pre-fills the form's text inputs from a connection. The unexposed
+// fields (proxy jump, agent forwarding, mosh, options) are not shown here; they
+// are preserved separately via FormModel.original.
+func fillInputs(inputs []textinput.Model, conn *config.Connection) {
+	inputs[fieldID].SetValue(conn.ID)
+	inputs[fieldHost].SetValue(conn.Host)
+	inputs[fieldUser].SetValue(conn.User)
+	if conn.Port != 0 {
+		inputs[fieldPort].SetValue(strconv.Itoa(conn.Port))
+	}
+	inputs[fieldIdentity].SetValue(conn.IdentityFile)
+	inputs[fieldProject].SetValue(conn.Project)
+	inputs[fieldEnv].SetValue(conn.Env)
+	if len(conn.Tags) > 0 {
+		inputs[fieldTags].SetValue(strings.Join(conn.Tags, ", "))
+	}
 }
 
 func (m FormModel) Init() tea.Cmd {
@@ -102,6 +127,9 @@ func (m FormModel) Init() tea.Cmd {
 func (m FormModel) Update(msg tea.Msg) (FormModel, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
+		// Any keypress clears a stale validation error; a fresh one is set
+		// again after this Update if the next save still fails.
+		m.errMsg = ""
 		switch msg.String() {
 		case "ctrl+c", "esc":
 			m.cancelled = true
@@ -184,6 +212,12 @@ func (m FormModel) View() string {
 
 	b.WriteString("\n")
 
+	// Validation error (e.g. duplicate ID), if any
+	if m.errMsg != "" {
+		b.WriteString(warningStyle.Render(m.errMsg))
+		b.WriteString("\n\n")
+	}
+
 	// Help
 	help := helpKeyStyle.Render("tab") + " " + helpDescStyle.Render("next") + "  "
 	help += helpKeyStyle.Render("enter") + " " + helpDescStyle.Render("next/save") + "  "
@@ -227,7 +261,9 @@ func (m FormModel) GetConnection() (*config.Connection, error) {
 	// Start from the original connection so fields not exposed in the form
 	// (proxy jump, agent forwarding, mosh, extra options) are preserved when
 	// editing or duplicating. For a brand-new connection this is the zero value.
-	conn := m.original
+	// Clone so the returned connection shares no mutable state (Options,
+	// UseMosh) with the source — important on the duplicate path.
+	conn := m.original.Clone()
 	conn.ID = id
 	conn.Host = host
 	conn.User = strings.TrimSpace(m.inputs[fieldUser].Value())

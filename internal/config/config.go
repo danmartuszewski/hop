@@ -152,8 +152,49 @@ func (c *Config) Save(path string) error {
 	return nil
 }
 
+// Clone returns a deep copy of the connection. Reference-type fields (Tags,
+// Options) and the UseMosh pointer are copied into fresh backing storage so the
+// clone shares no mutable state with the source. This matters for duplication,
+// where the source and the copy must be fully independent config entries.
+func (c Connection) Clone() Connection {
+	clone := c
+
+	if c.Tags != nil {
+		clone.Tags = append([]string(nil), c.Tags...)
+	}
+	if c.Options != nil {
+		clone.Options = make(map[string]string, len(c.Options))
+		for k, v := range c.Options {
+			clone.Options[k] = v
+		}
+	}
+	if c.UseMosh != nil {
+		mosh := *c.UseMosh
+		clone.UseMosh = &mosh
+	}
+
+	return clone
+}
+
 func (c *Config) AddConnection(conn Connection) {
 	c.Connections = append(c.Connections, conn)
+}
+
+// SuggestDuplicateID returns a unique connection ID derived from sourceID for
+// use when duplicating a connection. It tries "<sourceID>-copy" first, then
+// "<sourceID>-copy-2", "<sourceID>-copy-3", ... until it finds an ID that no
+// existing connection uses.
+func (c *Config) SuggestDuplicateID(sourceID string) string {
+	base := sourceID + "-copy"
+	if c.FindConnection(base) == nil {
+		return base
+	}
+	for n := 2; ; n++ {
+		candidate := fmt.Sprintf("%s-%d", base, n)
+		if c.FindConnection(candidate) == nil {
+			return candidate
+		}
+	}
 }
 
 func (c *Config) UpdateConnection(id string, conn Connection) bool {

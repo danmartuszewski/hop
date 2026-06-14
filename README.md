@@ -241,7 +241,7 @@ hop connect <id>      # connect by exact ID
 | `i` | Import from SSH config |
 | `p` | Paste SSH string (quick add) |
 | `e` | Edit selected |
-| `c` | Duplicate selected |
+| `c` | Duplicate selected (opens a prefilled copy) |
 | `d` | Delete selected |
 | `x` | Export connections to YAML |
 | `y` | Copy SSH command |
@@ -272,6 +272,15 @@ ssh://user@host:port
 ```
 
 The connection form opens with fields pre-filled.
+
+### Duplicating a Connection
+
+Press `c` on any connection to create a copy. The add form opens with **every
+field pre-filled** from the original — including options that aren't shown in
+the form, like proxy jump and mosh — and a collision-free ID suggestion (e.g.
+`web-prod` → `web-prod-copy`). Adjust whatever you need and save. If you pick an
+ID that already exists, the form stays open with your edits intact so you can
+fix it.
 
 ### Importing from SSH Config
 

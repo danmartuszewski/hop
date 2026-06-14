@@ -99,3 +99,89 @@ func TestFormPreservesUnexposedFieldsOnEdit(t *testing.T) {
 		t.Errorf("expected IdentityFile preserved, got %q", updated.IdentityFile)
 	}
 }
+
+// Duplicating must pre-fill the form with the source's values plus the
+// suggested ID, and must NOT be in editing mode (it saves as a new connection).
+func TestNewDuplicateFormModelPrefills(t *testing.T) {
+	conn := &config.Connection{
+		ID:           "web-prod",
+		Host:         "prod.example.com",
+		User:         "admin",
+		Port:         2222,
+		IdentityFile: "~/.ssh/work_key",
+		Project:      "web",
+		Env:          "prod",
+		Tags:         []string{"prod", "web"},
+	}
+
+	m := NewDuplicateFormModel(conn, "web-prod-copy")
+
+	if m.IsEditing() {
+		t.Error("expected duplicate form NOT to be in editing mode")
+	}
+	if m.OriginalID() != "" {
+		t.Errorf("expected empty originalID for duplicate, got %q", m.OriginalID())
+	}
+	if got := m.inputs[fieldID].Value(); got != "web-prod-copy" {
+		t.Errorf("expected pre-filled ID web-prod-copy, got %q", got)
+	}
+	if got := m.inputs[fieldHost].Value(); got != "prod.example.com" {
+		t.Errorf("expected host pre-filled, got %q", got)
+	}
+	if got := m.inputs[fieldTags].Value(); got != "prod, web" {
+		t.Errorf("expected tags pre-filled, got %q", got)
+	}
+}
+
+// A duplicate must carry over fields the form does not expose and must not
+// share mutable state (Options, UseMosh) with the source connection.
+func TestNewDuplicateFormModelPreservesAndDeepCopies(t *testing.T) {
+	mosh := true
+	src := &config.Connection{
+		ID:           "gateway",
+		Host:         "gw.example.com",
+		User:         "ops",
+		Port:         22,
+		ProxyJump:    "bastion",
+		ForwardAgent: true,
+		UseMosh:      &mosh,
+		Options:      map[string]string{"ServerAliveInterval": "60"},
+		Tags:         []string{"infra"},
+	}
+
+	m := NewDuplicateFormModel(src, "gateway-copy")
+
+	dup, err := m.GetConnection()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	// Unexposed fields carried over.
+	if dup.ProxyJump != "bastion" {
+		t.Errorf("expected ProxyJump preserved, got %q", dup.ProxyJump)
+	}
+	if !dup.ForwardAgent {
+		t.Error("expected ForwardAgent preserved")
+	}
+	if dup.UseMosh == nil || !*dup.UseMosh {
+		t.Error("expected UseMosh preserved")
+	}
+	if dup.Options["ServerAliveInterval"] != "60" {
+		t.Errorf("expected Options preserved, got %v", dup.Options)
+	}
+
+	// Mutating the duplicate must not affect the source (no aliasing).
+	dup.Options["ServerAliveInterval"] = "99"
+	*dup.UseMosh = false
+	dup.Tags[0] = "mutated"
+
+	if src.Options["ServerAliveInterval"] != "60" {
+		t.Errorf("source Options aliased: %v", src.Options)
+	}
+	if src.UseMosh == nil || !*src.UseMosh {
+		t.Error("source UseMosh aliased")
+	}
+	if src.Tags[0] != "infra" {
+		t.Errorf("source Tags aliased: %v", src.Tags)
+	}
+}
