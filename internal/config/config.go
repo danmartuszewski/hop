@@ -42,6 +42,7 @@ type Connection struct {
 	Project      string            `yaml:"project,omitempty"`
 	Env          string            `yaml:"env,omitempty"`
 	IdentityFile string            `yaml:"identity_file,omitempty"`
+	RemoteDir    string            `yaml:"remote_dir,omitempty"`
 	ProxyJump    string            `yaml:"proxy_jump,omitempty"`
 	ForwardAgent bool              `yaml:"forward_agent,omitempty"`
 	UseMosh      *bool             `yaml:"use_mosh,omitempty"`

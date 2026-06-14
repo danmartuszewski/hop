@@ -18,6 +18,7 @@ const (
 	fieldUser
 	fieldPort
 	fieldIdentity
+	fieldRemoteDir
 	fieldProject
 	fieldEnv
 	fieldTags
@@ -56,6 +57,8 @@ func NewFormModel(title string, conn *config.Connection) FormModel {
 			// Port will be pre-filled with 22
 		case fieldIdentity:
 			// optional - path to a private key
+		case fieldRemoteDir:
+			// optional - directory to land in after connecting
 		case fieldProject:
 			// optional
 		case fieldEnv:
@@ -113,6 +116,7 @@ func fillInputs(inputs []textinput.Model, conn *config.Connection) {
 		inputs[fieldPort].SetValue(strconv.Itoa(conn.Port))
 	}
 	inputs[fieldIdentity].SetValue(conn.IdentityFile)
+	inputs[fieldRemoteDir].SetValue(conn.RemoteDir)
 	inputs[fieldProject].SetValue(conn.Project)
 	inputs[fieldEnv].SetValue(conn.Env)
 	if len(conn.Tags) > 0 {
@@ -186,7 +190,7 @@ func (m FormModel) View() string {
 	b.WriteString("\n\n")
 
 	// Form fields
-	labels := []string{"ID:", "Host:", "User:", "Port:", "Identity:", "Project:", "Env:", "Tags:"}
+	labels := []string{"ID:", "Host:", "User:", "Port:", "Identity:", "Remote Dir:", "Project:", "Env:", "Tags:"}
 
 	for i, label := range labels {
 		style := helpDescStyle
@@ -202,6 +206,9 @@ func (m FormModel) View() string {
 		case fieldIdentity:
 			b.WriteString(" ")
 			b.WriteString(helpDescStyle.Render("(path to private key)"))
+		case fieldRemoteDir:
+			b.WriteString(" ")
+			b.WriteString(helpDescStyle.Render("(directory to start in)"))
 		case fieldTags:
 			b.WriteString(" ")
 			b.WriteString(helpDescStyle.Render("(comma-separated)"))
@@ -269,6 +276,7 @@ func (m FormModel) GetConnection() (*config.Connection, error) {
 	conn.User = strings.TrimSpace(m.inputs[fieldUser].Value())
 	conn.Port = port
 	conn.IdentityFile = strings.TrimSpace(m.inputs[fieldIdentity].Value())
+	conn.RemoteDir = strings.TrimSpace(m.inputs[fieldRemoteDir].Value())
 	conn.Project = strings.TrimSpace(m.inputs[fieldProject].Value())
 	conn.Env = strings.TrimSpace(m.inputs[fieldEnv].Value())
 	conn.Tags = tags

@@ -193,7 +193,7 @@ func TestBuildCommandString_WithSpaces(t *testing.T) {
 		Command: "echo hello world",
 	}
 	got := BuildCommandString(conn, opts)
-	want := `ssh admin@example.com "echo hello world"`
+	want := `ssh admin@example.com 'echo hello world'`
 	if got != want {
 		t.Errorf("BuildCommandString() = %q, want %q", got, want)
 	}
@@ -511,7 +511,7 @@ func TestBuildCommandString_MoshWithPort(t *testing.T) {
 		UseMosh: boolPtr(true),
 	}
 	got := BuildCommandString(conn, nil)
-	want := `mosh "--ssh=ssh -p 2222" admin@example.com`
+	want := `mosh '--ssh=ssh -p 2222' admin@example.com`
 	if got != want {
 		t.Errorf("BuildCommandString() = %q, want %q", got, want)
 	}
@@ -525,7 +525,7 @@ func TestBuildCommandString_MoshWithCommand(t *testing.T) {
 	}
 	opts := &ConnectOptions{Command: "tmux attach"}
 	got := BuildCommandString(conn, opts)
-	want := `mosh admin@example.com -- "tmux attach"`
+	want := `mosh admin@example.com -- 'tmux attach'`
 	if got != want {
 		t.Errorf("BuildCommandString() = %q, want %q", got, want)
 	}

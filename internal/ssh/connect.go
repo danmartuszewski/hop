@@ -20,7 +20,10 @@ type ConnectOptions struct {
 func BuildCommand(conn *config.Connection, opts *ConnectOptions) []string {
 	args := []string{}
 
-	if opts != nil && opts.ForceTTY {
+	remoteCmd, autoDir := resolveRemoteCommand(conn, opts)
+
+	// A landing-dir command launches an interactive shell, which needs a TTY.
+	if (opts != nil && opts.ForceTTY) || autoDir {
 		args = append(args, "-t")
 	}
 
@@ -56,8 +59,8 @@ func BuildCommand(conn *config.Connection, opts *ConnectOptions) []string {
 	}
 	args = append(args, destination)
 
-	if opts != nil && opts.Command != "" {
-		args = append(args, opts.Command)
+	if remoteCmd != "" {
+		args = append(args, remoteCmd)
 	}
 
 	return args
@@ -67,6 +70,8 @@ func BuildCommand(conn *config.Connection, opts *ConnectOptions) []string {
 // It returns the binary name ("mosh") and the argument list.
 func BuildMoshCommand(conn *config.Connection, opts *ConnectOptions) (string, []string) {
 	var moshArgs []string
+
+	remoteCmd, autoDir := resolveRemoteCommand(conn, opts)
 
 	// Build inner SSH options for the --ssh flag
 	var sshParts []string
@@ -119,9 +124,17 @@ func BuildMoshCommand(conn *config.Connection, opts *ConnectOptions) (string, []
 	}
 	moshArgs = append(moshArgs, destination)
 
-	// Remote command (mosh uses -- to pass server command)
-	if opts != nil && opts.Command != "" {
-		moshArgs = append(moshArgs, "--", opts.Command)
+	// Remote command (mosh uses -- to pass the server command). mosh execs this
+	// argv directly rather than via a shell, so the landing-dir command — which
+	// relies on shell syntax (";", "exec", parameter expansion) — must be run
+	// through "sh -c". An explicit user command is passed as-is, matching prior
+	// behaviour.
+	if remoteCmd != "" {
+		if autoDir {
+			moshArgs = append(moshArgs, "--", "sh", "-c", remoteCmd)
+		} else {
+			moshArgs = append(moshArgs, "--", remoteCmd)
+		}
 	}
 
 	return "mosh", moshArgs
@@ -134,11 +147,7 @@ func BuildCommandString(conn *config.Connection, opts *ConnectOptions) string {
 	args := BuildCommand(conn, opts)
 	quotedArgs := make([]string, len(args))
 	for i, arg := range args {
-		if strings.ContainsAny(arg, " \t\n\"'") {
-			quotedArgs[i] = fmt.Sprintf("%q", arg)
-		} else {
-			quotedArgs[i] = arg
-		}
+		quotedArgs[i] = posixQuote(arg)
 	}
 	return "ssh " + strings.Join(quotedArgs, " ")
 }
@@ -147,11 +156,7 @@ func buildMoshCommandString(conn *config.Connection, opts *ConnectOptions) strin
 	binary, args := BuildMoshCommand(conn, opts)
 	quotedArgs := make([]string, len(args))
 	for i, arg := range args {
-		if strings.ContainsAny(arg, " \t\n\"'") {
-			quotedArgs[i] = fmt.Sprintf("%q", arg)
-		} else {
-			quotedArgs[i] = arg
-		}
+		quotedArgs[i] = posixQuote(arg)
 	}
 	return binary + " " + strings.Join(quotedArgs, " ")
 }

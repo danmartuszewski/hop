@@ -101,6 +101,7 @@ After step 3, restart the agent so it picks up the new MCP server.
 - **Multi-exec** - Run commands across multiple servers at once
 - **Groups & tags** - Organize by project, environment, or custom tags
 - **Jump hosts** - ProxyJump support for bastion servers
+- **Landing directory** - Drop straight into a predefined working directory on connect
 - **MCP server** - Let AI assistants manage your servers — search connections, run commands, check status across projects
 - **Mosh support** - Use [mosh](https://mosh.org/) instead of SSH for roaming and unreliable connections
 - **Zero dependencies** - Single binary, works anywhere
@@ -136,6 +137,7 @@ connections:
     host: web.example.com
     user: deploy
     identity_file: ~/.ssh/work_key   # Private key for this connection
+    remote_dir: /var/www/myapp       # Land in this directory on connect
     project: myapp
     env: production
     tags: [web, prod]
@@ -211,6 +213,30 @@ hop myserver --mosh
 Per-connection `use_mosh: false` overrides the global default. SSH options (port, identity file, proxy jump, agent forwarding) are automatically passed to mosh via its `--ssh` flag. Mosh requires both the local `mosh-client` and `mosh-server` on the remote host.
 
 > **Note:** `hop exec` always uses SSH regardless of `use_mosh`, since mosh is designed for interactive sessions.
+
+### Landing Directory
+
+Set `remote_dir` to have a connection drop you straight into a specific directory instead of `$HOME`:
+
+```yaml
+connections:
+  - id: prod-web
+    host: web.example.com
+    user: deploy
+    remote_dir: /var/www/myapp   # cd here on connect
+
+  - id: my-dev
+    host: dev.example.com
+    remote_dir: ~/projects/api   # ~ is expanded on the remote host
+```
+
+On connect, hop runs `cd` into the directory and then hands you a normal interactive login shell, so the session behaves exactly like a regular SSH login — just somewhere else. A few details worth knowing:
+
+- **Absolute paths and `~` both work.** `~` and `~user` are expanded by the remote shell.
+- **Forgiving by design.** If the directory is missing or inaccessible, you still land in a shell (in `$HOME`) rather than getting bounced off the host.
+- **Works in new tabs too.** `hop open` carries the landing directory into every terminal it launches.
+
+> **Note:** `remote_dir` is ignored when you pass an explicit command (e.g. `hop connect web -- uptime` or `hop exec`), since those aren't interactive sessions.
 
 ## TUI Dashboard
 
