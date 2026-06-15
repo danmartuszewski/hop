@@ -1,8 +1,8 @@
 package health
 
 import (
-	"fmt"
 	"net"
+	"strconv"
 	"time"
 )
 
@@ -16,7 +16,7 @@ const (
 )
 
 func CheckTCP(host string, port int) Status {
-	addr := fmt.Sprintf("%s:%d", host, port)
+	addr := net.JoinHostPort(host, strconv.Itoa(port))
 	conn, err := net.DialTimeout("tcp", addr, 2*time.Second)
 	if err != nil {
 		return StatusUnreachable
