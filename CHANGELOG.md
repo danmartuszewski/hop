@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.9.0](https://github.com/danmartuszewski/hop/compare/v1.8.0...v1.9.0) (2026-06-15)
+
+
+### Features
+
+* add per-connection landing directory ([4e9e106](https://github.com/danmartuszewski/hop/commit/4e9e1061b7decfe0015967c2b889aa46eaa5d59e))
+* prefill duplicate connection with smart copy id ([5736043](https://github.com/danmartuszewski/hop/commit/5736043d0693011463243929b06c5b48171ccb88))
+
+
+### Bug Fixes
+
+* use net.JoinHostPort for IPv6-safe health check address ([143ed6c](https://github.com/danmartuszewski/hop/commit/143ed6c15bae9afc101227f9679bdbdd71a64c88))
+
 ## [1.8.0](https://github.com/danmartuszewski/hop/compare/v1.7.0...v1.8.0) (2026-06-02)
 
 
