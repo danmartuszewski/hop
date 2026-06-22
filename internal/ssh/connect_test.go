@@ -26,7 +26,7 @@ func TestBuildCommand(t *testing.T) {
 				User: "admin",
 			},
 			opts: nil,
-			want: []string{"admin@example.com"},
+			want: []string{"--", "admin@example.com"},
 		},
 		{
 			name: "custom port",
@@ -36,7 +36,7 @@ func TestBuildCommand(t *testing.T) {
 				Port: 2222,
 			},
 			opts: nil,
-			want: []string{"-p", "2222", "admin@example.com"},
+			want: []string{"-p", "2222", "--", "admin@example.com"},
 		},
 		{
 			name: "with identity file",
@@ -46,7 +46,7 @@ func TestBuildCommand(t *testing.T) {
 				IdentityFile: "/path/to/key.pem",
 			},
 			opts: nil,
-			want: []string{"-i", "/path/to/key.pem", "deploy@example.com"},
+			want: []string{"-i", "/path/to/key.pem", "--", "deploy@example.com"},
 		},
 		{
 			name: "with ssh options",
@@ -58,7 +58,7 @@ func TestBuildCommand(t *testing.T) {
 				},
 			},
 			opts: nil,
-			want: []string{"-o", "StrictHostKeyChecking=no", "admin@example.com"},
+			want: []string{"-o", "StrictHostKeyChecking=no", "--", "admin@example.com"},
 		},
 		{
 			name: "force tty",
@@ -67,7 +67,7 @@ func TestBuildCommand(t *testing.T) {
 				User: "admin",
 			},
 			opts: &ConnectOptions{ForceTTY: true},
-			want: []string{"-t", "admin@example.com"},
+			want: []string{"-t", "--", "admin@example.com"},
 		},
 		{
 			name: "with remote command",
@@ -76,7 +76,7 @@ func TestBuildCommand(t *testing.T) {
 				User: "admin",
 			},
 			opts: &ConnectOptions{Command: "uptime"},
-			want: []string{"admin@example.com", "uptime"},
+			want: []string{"--", "admin@example.com", "uptime"},
 		},
 		{
 			name: "no user specified uses system user",
@@ -86,9 +86,9 @@ func TestBuildCommand(t *testing.T) {
 			opts: nil,
 			want: func() []string {
 				if user := os.Getenv("USER"); user != "" {
-					return []string{user + "@example.com"}
+					return []string{"--", user + "@example.com"}
 				}
-				return []string{"example.com"}
+				return []string{"--", "example.com"}
 			}(),
 		},
 		{
@@ -99,7 +99,7 @@ func TestBuildCommand(t *testing.T) {
 				Port: 22,
 			},
 			opts: nil,
-			want: []string{"admin@example.com"},
+			want: []string{"--", "admin@example.com"},
 		},
 		{
 			name: "full complex connection",
@@ -116,7 +116,7 @@ func TestBuildCommand(t *testing.T) {
 				ForceTTY: true,
 				Command:  "htop",
 			},
-			want: []string{"-t", "-p", "2222", "-i", "/keys/server.pem", "-o", "ServerAliveInterval=60", "deploy@10.0.1.50", "htop"},
+			want: []string{"-t", "-p", "2222", "-i", "/keys/server.pem", "-o", "ServerAliveInterval=60", "--", "deploy@10.0.1.50", "htop"},
 		},
 		{
 			name: "with proxy jump",
@@ -126,7 +126,7 @@ func TestBuildCommand(t *testing.T) {
 				ProxyJump: "bastion.example.com",
 			},
 			opts: nil,
-			want: []string{"-J", "bastion.example.com", "admin@internal.example.com"},
+			want: []string{"-J", "bastion.example.com", "--", "admin@internal.example.com"},
 		},
 		{
 			name: "with proxy jump and user",
@@ -136,7 +136,7 @@ func TestBuildCommand(t *testing.T) {
 				ProxyJump: "jumpuser@bastion.example.com:2222",
 			},
 			opts: nil,
-			want: []string{"-J", "jumpuser@bastion.example.com:2222", "admin@internal.example.com"},
+			want: []string{"-J", "jumpuser@bastion.example.com:2222", "--", "admin@internal.example.com"},
 		},
 		{
 			name: "with forward agent",
@@ -146,7 +146,7 @@ func TestBuildCommand(t *testing.T) {
 				ForwardAgent: true,
 			},
 			opts: nil,
-			want: []string{"-A", "deploy@git.example.com"},
+			want: []string{"-A", "--", "deploy@git.example.com"},
 		},
 		{
 			name: "with proxy jump and forward agent",
@@ -157,7 +157,7 @@ func TestBuildCommand(t *testing.T) {
 				ForwardAgent: true,
 			},
 			opts: nil,
-			want: []string{"-J", "bastion", "-A", "admin@internal.example.com"},
+			want: []string{"-J", "bastion", "-A", "--", "admin@internal.example.com"},
 		},
 	}
 
@@ -171,6 +171,40 @@ func TestBuildCommand(t *testing.T) {
 	}
 }
 
+// TestBuildCommand_OptionInjectionGuarded asserts that a host crafted to look
+// like an ssh option (CWE-88) is placed after the "--" separator, so ssh treats
+// it as a destination rather than executing it as ProxyCommand and friends.
+func TestBuildCommand_OptionInjectionGuarded(t *testing.T) {
+	conn := &config.Connection{Host: "-oProxyCommand=touch /tmp/PWNED_BY_HOP"}
+	args := BuildCommand(conn, &ConnectOptions{Command: "uptime"})
+
+	sep := -1
+	for i, a := range args {
+		if a == "--" {
+			sep = i
+			break
+		}
+	}
+	if sep == -1 {
+		t.Fatalf("BuildCommand() = %v, expected a \"--\" separator before the destination", args)
+	}
+	for _, a := range args[:sep] {
+		if strings.HasPrefix(a, "-oProxyCommand") {
+			t.Errorf("malicious host appears before \"--\" as an option: %v", args)
+		}
+	}
+}
+
+// TestConnect_RefusesUnsafeDestination is the last line of defense: even if an
+// unsafe connection reaches Connect (e.g. a hand-edited config), it must error
+// out before exec rather than launch ssh.
+func TestConnect_RefusesUnsafeDestination(t *testing.T) {
+	conn := &config.Connection{Host: "-oProxyCommand=touch /tmp/PWNED_BY_HOP"}
+	if err := Connect(conn, &ConnectOptions{DryRun: true}); err == nil {
+		t.Fatal("Connect() accepted an unsafe destination, want error")
+	}
+}
+
 func TestBuildCommandString(t *testing.T) {
 	conn := &config.Connection{
 		Host: "example.com",
@@ -178,7 +212,7 @@ func TestBuildCommandString(t *testing.T) {
 		Port: 2222,
 	}
 	got := BuildCommandString(conn, nil)
-	want := "ssh -p 2222 admin@example.com"
+	want := "ssh -p 2222 -- admin@example.com"
 	if got != want {
 		t.Errorf("BuildCommandString() = %q, want %q", got, want)
 	}
@@ -193,7 +227,7 @@ func TestBuildCommandString_WithSpaces(t *testing.T) {
 		Command: "echo hello world",
 	}
 	got := BuildCommandString(conn, opts)
-	want := `ssh admin@example.com 'echo hello world'`
+	want := `ssh -- admin@example.com 'echo hello world'`
 	if got != want {
 		t.Errorf("BuildCommandString() = %q, want %q", got, want)
 	}
@@ -481,7 +515,7 @@ func TestBuildCommandString_SSHUnchanged(t *testing.T) {
 		Port: 2222,
 	}
 	got := BuildCommandString(conn, nil)
-	want := "ssh -p 2222 admin@example.com"
+	want := "ssh -p 2222 -- admin@example.com"
 	if got != want {
 		t.Errorf("BuildCommandString() = %q, want %q", got, want)
 	}

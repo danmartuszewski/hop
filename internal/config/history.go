@@ -61,7 +61,9 @@ func (h *History) Save() error {
 // SaveToPath saves history to a specific path
 func (h *History) SaveToPath(path string) error {
 	dir := filepath.Dir(path)
-	if err := os.MkdirAll(dir, 0755); err != nil {
+	// 0700/0600: history reveals which hosts are used and when; keep it private to
+	// the owner, consistent with the config file.
+	if err := os.MkdirAll(dir, 0700); err != nil {
 		return err
 	}
 
@@ -70,7 +72,7 @@ func (h *History) SaveToPath(path string) error {
 		return err
 	}
 
-	return os.WriteFile(path, data, 0644)
+	return os.WriteFile(path, data, 0600)
 }
 
 // RecordUsage records a connection usage

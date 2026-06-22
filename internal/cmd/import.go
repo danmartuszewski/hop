@@ -74,6 +74,14 @@ func runImport(cmd *cobra.Command, args []string) error {
 		conn := host.ToConnection()
 		originalID := conn.ID
 
+		// Skip entries whose host/user/proxy-jump could be interpreted as an ssh
+		// option — an SSH config (or an Include'd file) is an untrusted source and
+		// such a value would enable local command execution (CWE-88).
+		if err := conn.CheckSafety(); err != nil {
+			fmt.Printf("  Skipping %q: %v\n", originalID, err)
+			continue
+		}
+
 		// Handle ID conflicts
 		if existingIDs[conn.ID] {
 			conn.ID = sshconfig.ResolveConflict(conn.ID, existingIDs)

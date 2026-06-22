@@ -24,6 +24,31 @@ func (e ValidationErrors) Error() string {
 	return strings.Join(msgs, "\n")
 }
 
+// CheckSafety reports whether any field that becomes a standalone token in the
+// ssh/mosh argv could be misinterpreted as a command-line option. A value
+// beginning with "-" (e.g. "-oProxyCommand=touch /tmp/pwned") would be parsed by
+// ssh as an option and execute an arbitrary command on the local machine
+// (CWE-88). It is enforced on config load, at import time, and again in
+// ssh.Connect immediately before a connection is launched.
+func (c *Connection) CheckSafety() error {
+	fields := []struct {
+		name, value string
+	}{
+		{"host", c.Host},
+		{"user", c.User},
+		{"proxy_jump", c.ProxyJump},
+	}
+	for _, f := range fields {
+		if strings.HasPrefix(f.value, "-") {
+			return ValidationError{
+				Field:   f.name,
+				Message: fmt.Sprintf("must not start with '-' (value %q could be interpreted as an ssh option)", f.value),
+			}
+		}
+	}
+	return nil
+}
+
 func (c *Config) Validate() error {
 	var errs ValidationErrors
 
@@ -57,6 +82,15 @@ func (c *Config) Validate() error {
 				Field:   prefix + ".host",
 				Message: "is required",
 			})
+		}
+
+		if err := conn.CheckSafety(); err != nil {
+			if ve, ok := err.(ValidationError); ok {
+				ve.Field = prefix + "." + ve.Field
+				errs = append(errs, ve)
+			} else {
+				errs = append(errs, ValidationError{Field: prefix, Message: err.Error()})
+			}
 		}
 	}
 

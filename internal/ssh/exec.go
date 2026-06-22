@@ -164,6 +164,16 @@ func executeOnHost(ctx context.Context, conn *config.Connection, opts *ExecOptio
 		Connection: conn,
 	}
 
+	// Refuse hosts/users/proxy-jumps that could be parsed as ssh options before
+	// spawning ssh, so a crafted connection fails loudly instead of injecting
+	// command-line options (CWE-88).
+	if err := conn.CheckSafety(); err != nil {
+		result.Error = err
+		result.ExitCode = -1
+		result.Duration = time.Since(start)
+		return result
+	}
+
 	// Build SSH command args
 	args := BuildCommand(conn, &ConnectOptions{
 		Command: opts.Command,

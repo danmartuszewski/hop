@@ -57,7 +57,11 @@ func BuildCommand(conn *config.Connection, opts *ConnectOptions) []string {
 	if user != "" {
 		destination = user + "@" + conn.Host
 	}
-	args = append(args, destination)
+
+	// "--" ends option parsing so a destination beginning with "-" can never be
+	// interpreted as an ssh flag (e.g. "-oProxyCommand=..."), which would run an
+	// arbitrary command on the local machine (CWE-88 argument injection).
+	args = append(args, "--", destination)
 
 	if remoteCmd != "" {
 		args = append(args, remoteCmd)
@@ -116,7 +120,11 @@ func BuildMoshCommand(conn *config.Connection, opts *ConnectOptions) (string, []
 		moshArgs = append(moshArgs, opts.ExtraArgs...)
 	}
 
-	// Destination
+	// Destination. mosh takes the destination as a positional argument and uses
+	// "--" to separate its own options from the remote command, so — unlike ssh —
+	// a leading "--" cannot guard the destination here. A destination beginning
+	// with "-" is instead rejected up front by Connection.CheckSafety (enforced on
+	// config load, at import time, and again in Connect before launch).
 	user := conn.EffectiveUser()
 	destination := conn.Host
 	if user != "" {
@@ -162,6 +170,13 @@ func buildMoshCommandString(conn *config.Connection, opts *ConnectOptions) strin
 }
 
 func Connect(conn *config.Connection, opts *ConnectOptions) error {
+	// Last line of defense against argument injection: refuse to launch a
+	// connection whose host/user/proxy-jump could be parsed as an ssh/mosh option,
+	// even if it somehow bypassed load- and import-time validation.
+	if err := conn.CheckSafety(); err != nil {
+		return err
+	}
+
 	if opts != nil && opts.DryRun {
 		fmt.Println(BuildCommandString(conn, opts))
 		return nil

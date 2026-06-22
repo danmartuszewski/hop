@@ -321,6 +321,36 @@ func TestValidate(t *testing.T) {
 			},
 			wantErr: true,
 		},
+		{
+			name: "host starting with dash is rejected",
+			config: Config{
+				Version: 1,
+				Connections: []Connection{
+					{ID: "evil", Host: "-oProxyCommand=touch /tmp/pwned"},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "user starting with dash is rejected",
+			config: Config{
+				Version: 1,
+				Connections: []Connection{
+					{ID: "evil", Host: "example.com", User: "-oProxyCommand=id"},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "proxy jump starting with dash is rejected",
+			config: Config{
+				Version: 1,
+				Connections: []Connection{
+					{ID: "evil", Host: "example.com", ProxyJump: "-oProxyCommand=id"},
+				},
+			},
+			wantErr: true,
+		},
 	}
 
 	for _, tt := range tests {
@@ -328,6 +358,30 @@ func TestValidate(t *testing.T) {
 			err := tt.config.Validate()
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Validate() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestConnectionCheckSafety(t *testing.T) {
+	tests := []struct {
+		name    string
+		conn    Connection
+		wantErr bool
+	}{
+		{name: "plain host", conn: Connection{Host: "example.com"}, wantErr: false},
+		{name: "user@host", conn: Connection{Host: "example.com", User: "admin"}, wantErr: false},
+		{name: "proxy jump host", conn: Connection{Host: "example.com", ProxyJump: "bastion"}, wantErr: false},
+		{name: "dash host", conn: Connection{Host: "-oProxyCommand=touch /tmp/pwned"}, wantErr: true},
+		{name: "dash user", conn: Connection{Host: "example.com", User: "-x"}, wantErr: true},
+		{name: "dash proxy jump", conn: Connection{Host: "example.com", ProxyJump: "-x"}, wantErr: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := tt.conn.CheckSafety()
+			if (err != nil) != tt.wantErr {
+				t.Errorf("CheckSafety() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
