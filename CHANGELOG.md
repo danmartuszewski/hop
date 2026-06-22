@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.9.1](https://github.com/danmartuszewski/hop/compare/v1.9.0...v1.9.1) (2026-06-22)
+
+
+### Bug Fixes
+
+* prevent ssh argument injection via crafted host ([5578cc3](https://github.com/danmartuszewski/hop/commit/5578cc31bfd3ed4e617baf1b2dc36432277bf1f1))
+
 ## [1.9.0](https://github.com/danmartuszewski/hop/compare/v1.8.0...v1.9.0) (2026-06-15)
 
 
