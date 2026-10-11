@@ -618,10 +618,23 @@ hop completion fish > ~/.config/fish/completions/hop.fish
 make build          # Build binary to ./bin/hop
 make test           # Run tests
 make test-race      # Run tests with race detection (also used in CI)
+make vuln           # Scan for reachable Go vulnerabilities
 make test-docker    # Run tests in Docker (isolated)
 make install        # Install to $GOPATH/bin
 make docker         # Build Docker image
 ```
+
+## Maintenance
+
+Dependency maintenance is configured through Dependabot for Go modules (including
+the pinned vulnerability scanner), GitHub Actions, and Docker images. It checks
+weekly and opens pull requests for review. Minor and patch Go updates are grouped;
+major updates remain separate.
+
+The Security workflow runs `make vuln` on pull requests, pushes to `main`, and a
+weekly schedule. It can also be started manually from GitHub Actions. Reachable
+vulnerabilities fail the check. Run it locally with a patched, supported Go
+toolchain so the scan also reflects current standard-library fixes.
 
 ## Docker
 

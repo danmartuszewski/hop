@@ -1,6 +1,6 @@
 # .PHONY declares targets that don't represent actual files
 # This prevents conflicts if files with these names exist and ensures targets always run
-.PHONY: all build test test-race test-coverage lint fmt clean install deps run docker test-docker docker-run
+.PHONY: all build test test-race test-coverage vuln lint fmt clean install deps run docker test-docker docker-run
 # Build variables
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
 COMMIT ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo "none")
@@ -23,6 +23,10 @@ test:
 # Run concurrency checks, matching CI
 test-race:
 	go test -race ./...
+
+# Scan reachable vulnerabilities using the tool version pinned in go.mod
+vuln:
+	go tool govulncheck ./...
 
 # Run tests with coverage
 test-coverage:
