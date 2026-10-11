@@ -10,7 +10,7 @@ permissions:
   contents: read
 
 jobs:
-  build-test:
+  test:
     strategy:
       matrix:
         go-version: ["1.26.x", "stable"]
@@ -31,3 +31,14 @@ jobs:
 
       - name: Test
         run: go test -race ./...
+
+  # Keep the required check name stable while the test matrix changes.
+  build-test:
+    needs: test
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require every matrix job to pass
+        env:
+          TEST_RESULT: ${{ needs.test.result }}
+        run: test "$TEST_RESULT" = success
