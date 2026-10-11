@@ -1,6 +1,14 @@
 # Binary
 hop
 bin/
+dist/
+
+# Local credentials and generated SSH test keys
+.mcpregistry_*
+.env
+.env.*
+test/docker/id_test
+test/docker/id_test.pub
 
 # Git
 .git

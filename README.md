@@ -61,7 +61,7 @@ stop and report on the first failure.
 1. Pick ONE install method, in this priority:
    a. Homebrew (macOS or Linux):
         brew install danmartuszewski/tap/hop
-   b. Go 1.25+ available:
+   b. Go 1.26+ available:
         go install github.com/danmartuszewski/hop/cmd/hop@latest
    c. From source (no brew, no Go on PATH):
         git clone https://github.com/danmartuszewski/hop.git && cd hop && make install

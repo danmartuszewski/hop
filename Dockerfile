@@ -1,4 +1,4 @@
-FROM golang:1.25-alpine AS builder
+FROM golang:1.27.2-alpine3.24 AS builder
 
 WORKDIR /app
 COPY go.mod go.sum ./
@@ -14,7 +14,7 @@ FROM builder AS build
 RUN go build -o /hop ./cmd/hop
 
 # Final image
-FROM alpine:3.19
+FROM alpine:3.24.2
 
 RUN apk add --no-cache \
     openssh-client \
