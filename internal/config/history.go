@@ -72,7 +72,7 @@ func (h *History) SaveToPath(path string) error {
 		return err
 	}
 
-	return os.WriteFile(path, data, 0600)
+	return writePrivateFile(path, data)
 }
 
 // RecordUsage records a connection usage

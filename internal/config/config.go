@@ -148,7 +148,7 @@ func (c *Config) Save(path string) error {
 		return fmt.Errorf("failed to marshal config: %w", err)
 	}
 
-	if err := os.WriteFile(path, data, 0600); err != nil {
+	if err := writePrivateFile(path, data); err != nil {
 		return fmt.Errorf("failed to write config file: %w", err)
 	}
 
