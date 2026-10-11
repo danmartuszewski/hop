@@ -3,8 +3,57 @@ package sshconfig
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
+
+func TestParse_DirectiveSeparators(t *testing.T) {
+	for _, separator := range []string{" ", "\t", " \t ", "=", "= ", " =", " = ", "\t=\t"} {
+		t.Run(separator, func(t *testing.T) {
+			path := filepath.Join(t.TempDir(), "config")
+			content := strings.Join([]string{
+				"Host" + separator + "server",
+				"\tHostName" + separator + "server.example.com",
+				"  User" + separator + "deploy",
+				"\tPort" + separator + "2222",
+				"  IdentityFile" + separator + "/keys/work_key",
+				"\tProxyCommand" + separator + "ssh -o IdentitiesOnly=yes -W %h:%p jump",
+			}, "\n")
+			if err := os.WriteFile(path, []byte(content), 0600); err != nil {
+				t.Fatal(err)
+			}
+			hosts, err := Parse(path)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if len(hosts) != 1 {
+				t.Fatalf("got %d hosts, want 1", len(hosts))
+			}
+			host := hosts[0]
+			if host.Alias != "server" || host.HostName != "server.example.com" || host.User != "deploy" || host.Port != 2222 {
+				t.Fatalf("incorrect connection fields: %+v", host)
+			}
+			if host.IdentityFile != "/keys/work_key" || host.Options["proxycommand"] != "ssh -o IdentitiesOnly=yes -W %h:%p jump" {
+				t.Fatalf("argument contents changed: %+v", host)
+			}
+		})
+	}
+}
+
+func TestParse_TabSeparatedInclude(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "included.conf"), []byte("Host\tincluded\n\tHostName\tincluded.example.com\n"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(dir, "config")
+	if err := os.WriteFile(path, []byte("Include\tincluded.conf\n"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	hosts, err := Parse(path)
+	if err != nil || len(hosts) != 1 || hosts[0].Alias != "included" {
+		t.Fatalf("tab-separated include not parsed: %+v, %v", hosts, err)
+	}
+}
 
 func TestParse_BasicConfig(t *testing.T) {
 	dir := t.TempDir()

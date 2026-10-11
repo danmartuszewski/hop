@@ -71,18 +71,20 @@ func parseFile(path string, visited map[string]bool) ([]ParsedHost, error) {
 			continue
 		}
 
-		// Split into keyword and argument
-		parts := strings.SplitN(line, " ", 2)
-		if len(parts) < 2 {
-			// Try with = separator
-			parts = strings.SplitN(line, "=", 2)
-		}
-		if len(parts) < 2 {
+		// OpenSSH accepts whitespace or one '=' surrounded by whitespace.
+		// Split only the directive boundary so spaces and '=' inside command
+		// arguments (such as ProxyCommand) remain untouched.
+		separator := strings.IndexAny(line, " \t=")
+		if separator < 0 {
 			continue
 		}
 
-		keyword := strings.ToLower(strings.TrimSpace(parts[0]))
-		argument := strings.TrimSpace(parts[1])
+		keyword := strings.ToLower(line[:separator])
+		argument := strings.TrimSpace(line[separator:])
+		argument = strings.TrimSpace(strings.TrimPrefix(argument, "="))
+		if keyword == "" || argument == "" {
+			continue
+		}
 
 		// Handle Include directive
 		if keyword == "include" {
