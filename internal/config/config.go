@@ -201,9 +201,19 @@ func (c *Config) SuggestDuplicateID(sourceID string) string {
 }
 
 func (c *Config) UpdateConnection(id string, conn Connection) bool {
+	if conn.ID != id && c.FindConnection(conn.ID) != nil {
+		return false
+	}
 	for i, existing := range c.Connections {
 		if existing.ID == id {
 			c.Connections[i] = conn
+			for _, members := range c.Groups {
+				for j, member := range members {
+					if member == id {
+						members[j] = conn.ID
+					}
+				}
+			}
 			return true
 		}
 	}
@@ -214,6 +224,15 @@ func (c *Config) DeleteConnection(id string) bool {
 	for i, conn := range c.Connections {
 		if conn.ID == id {
 			c.Connections = append(c.Connections[:i], c.Connections[i+1:]...)
+			for name, members := range c.Groups {
+				remaining := make([]string, 0, len(members))
+				for _, member := range members {
+					if member != id {
+						remaining = append(remaining, member)
+					}
+				}
+				c.Groups[name] = remaining
+			}
 			return true
 		}
 	}

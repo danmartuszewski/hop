@@ -35,7 +35,7 @@ func emptyConfig() *config.Config {
 
 func TestNewModel(t *testing.T) {
 	cfg := testConfig()
-	m := NewModel(cfg, "1.0.0")
+	m := NewModel(cfg, "1.0.0", "")
 
 	if m.version != "1.0.0" {
 		t.Errorf("expected version 1.0.0, got %s", m.version)
@@ -52,7 +52,7 @@ func TestNewModel(t *testing.T) {
 
 func TestNavigationKeys(t *testing.T) {
 	cfg := testConfig()
-	m := NewModel(cfg, "1.0.0")
+	m := NewModel(cfg, "1.0.0", "")
 
 	// Initial cursor should be 0
 	if m.cursor != 0 {
@@ -114,7 +114,7 @@ func TestPageNavigationKeys(t *testing.T) {
 		})
 	}
 
-	m := NewModel(cfg, "1.0.0")
+	m := NewModel(cfg, "1.0.0", "")
 	m.height = 20 // visible list height = 13
 
 	newModel, _ := m.Update(tea.KeyMsg{Type: tea.KeyPgDown})
@@ -144,7 +144,7 @@ func TestPageNavigationKeys(t *testing.T) {
 
 func TestViewSwitching(t *testing.T) {
 	cfg := testConfig()
-	m := NewModel(cfg, "1.0.0")
+	m := NewModel(cfg, "1.0.0", "")
 
 	// Press ? to open help
 	newModel, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'?'}})
@@ -198,7 +198,7 @@ func TestViewSwitching(t *testing.T) {
 
 func TestFilterMode(t *testing.T) {
 	cfg := testConfig()
-	m := NewModel(cfg, "1.0.0")
+	m := NewModel(cfg, "1.0.0", "")
 
 	// Press / to enter filter mode
 	newModel, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'/'}})
@@ -241,7 +241,7 @@ func TestFuzzyFilterScoring(t *testing.T) {
 		},
 		Groups: map[string][]string{},
 	}
-	m := NewModel(cfg, "1.0.0")
+	m := NewModel(cfg, "1.0.0", "")
 
 	// Apply filter "prod"
 	m.applyFilter("prod")
@@ -280,7 +280,7 @@ func TestFuzzyFilterSubsequence(t *testing.T) {
 		},
 		Groups: map[string][]string{},
 	}
-	m := NewModel(cfg, "1.0.0")
+	m := NewModel(cfg, "1.0.0", "")
 
 	// Apply fuzzy filter "mpw" (m-yapp-p-rod-w-eb)
 	m.applyFilter("mpw")
@@ -311,7 +311,7 @@ func TestTagFilterUI(t *testing.T) {
 		},
 		Groups: map[string][]string{},
 	}
-	m := NewModel(cfg, "1.0.0")
+	m := NewModel(cfg, "1.0.0", "")
 
 	// Verify tags were collected
 	if len(m.allTags) != 4 {
@@ -361,7 +361,7 @@ func TestTagFilterWithTextFilter(t *testing.T) {
 		},
 		Groups: map[string][]string{},
 	}
-	m := NewModel(cfg, "1.0.0")
+	m := NewModel(cfg, "1.0.0", "")
 
 	// Activate "web" tag and search for "prod"
 	m.activeTags["web"] = true
@@ -389,7 +389,7 @@ func TestTagPickerView(t *testing.T) {
 		},
 		Groups: map[string][]string{},
 	}
-	m := NewModel(cfg, "1.0.0")
+	m := NewModel(cfg, "1.0.0", "")
 
 	// Press t to open tag picker
 	newModel, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'t'}})
@@ -419,7 +419,7 @@ func TestTagPickerView(t *testing.T) {
 
 func TestMouseScrollNavigation(t *testing.T) {
 	cfg := testConfig()
-	m := NewModel(cfg, "1.0.0")
+	m := NewModel(cfg, "1.0.0", "")
 
 	// Initial cursor at 0
 	if m.cursor != 0 {
@@ -465,7 +465,7 @@ func TestMouseClickSelection(t *testing.T) {
 		},
 		Groups: map[string][]string{},
 	}
-	m := NewModel(cfg, "1.0.0")
+	m := NewModel(cfg, "1.0.0", "")
 	m.width = 100
 	m.height = 30
 
@@ -512,7 +512,7 @@ func TestMouseClickSelection(t *testing.T) {
 
 func TestSelectConnection(t *testing.T) {
 	cfg := testConfig()
-	m := NewModel(cfg, "1.0.0")
+	m := NewModel(cfg, "1.0.0", "")
 
 	// Move to second item
 	newModel, _ := m.Update(tea.KeyMsg{Type: tea.KeyDown})
@@ -528,7 +528,7 @@ func TestSelectConnection(t *testing.T) {
 
 func TestEmptyConfig(t *testing.T) {
 	cfg := emptyConfig()
-	m := NewModel(cfg, "1.0.0")
+	m := NewModel(cfg, "1.0.0", "")
 
 	if len(m.filtered) != 0 {
 		t.Errorf("expected 0 filtered items, got %d", len(m.filtered))
@@ -543,7 +543,7 @@ func TestEmptyConfig(t *testing.T) {
 
 func TestEditConnection(t *testing.T) {
 	cfg := testConfig()
-	m := NewModel(cfg, "1.0.0")
+	m := NewModel(cfg, "1.0.0", "")
 
 	// Press e to edit
 	newModel, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'e'}})
@@ -560,7 +560,7 @@ func TestEditConnection(t *testing.T) {
 
 func TestDuplicateConnection(t *testing.T) {
 	cfg := testConfig()
-	m := NewModel(cfg, "1.0.0")
+	m := NewModel(cfg, "1.0.0", "")
 
 	// Press c to duplicate
 	newModel, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'c'}})
@@ -598,7 +598,7 @@ func TestDuplicateConnection(t *testing.T) {
 // list and discard everything), and surface an inline error.
 func TestDuplicateIDCollisionKeepsForm(t *testing.T) {
 	cfg := testConfig()
-	m := NewModel(cfg, "1.0.0")
+	m := NewModel(cfg, "1.0.0", "")
 
 	// Open the add form and type an ID that already exists.
 	newModel, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'a'}})
@@ -626,7 +626,7 @@ func TestDuplicateIDCollisionKeepsForm(t *testing.T) {
 
 func TestQuit(t *testing.T) {
 	cfg := testConfig()
-	m := NewModel(cfg, "1.0.0")
+	m := NewModel(cfg, "1.0.0", "")
 
 	// Press q to quit
 	newModel, cmd := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'q'}})
@@ -644,7 +644,7 @@ func TestQuit(t *testing.T) {
 // Integration test using teatest
 func TestDashboardIntegration(t *testing.T) {
 	cfg := testConfig()
-	m := NewModel(cfg, "1.0.0")
+	m := NewModel(cfg, "1.0.0", "")
 
 	tm := teatest.NewTestModel(t, m, teatest.WithInitialTermSize(80, 24))
 

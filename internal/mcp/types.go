@@ -2,7 +2,7 @@ package hopmcp
 
 // Output limits
 const (
-	MaxBytesPerHost    = 64 * 1024 // 64KB per host output
+	MaxBytesPerHost    = 64 * 1024 // 64 KiB per captured stream per host
 	MaxHostsPerRequest = 50
 )
 

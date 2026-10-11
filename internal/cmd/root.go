@@ -88,7 +88,7 @@ func runDashboard() error {
 		return err
 	}
 
-	return tui.Run(cfg, Version)
+	return tui.Run(cfg, Version, cfgFile)
 }
 
 func init() {

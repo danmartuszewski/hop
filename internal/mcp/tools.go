@@ -303,10 +303,11 @@ func (cl *configLoader) handleExecCommand(ctx context.Context, _ *mcp.CallToolRe
 	log.Printf("[exec] target=%s command=%q hosts=%d", input.Target, input.Command, len(connections))
 
 	execOpts := &ssh.ExecOptions{
-		Command:  input.Command,
-		Parallel: parallel,
-		Timeout:  timeout,
-		Stream:   false,
+		Command:        input.Command,
+		Parallel:       parallel,
+		Timeout:        timeout,
+		Stream:         false,
+		MaxOutputBytes: MaxBytesPerHost,
 	}
 
 	results := ssh.ExecuteContext(ctx, connections, execOpts)
@@ -326,12 +327,12 @@ func (cl *configLoader) handleExecCommand(ctx context.Context, _ *mcp.CallToolRe
 		stdout := r.Stdout
 		stderr := r.Stderr
 
-		// Enforce output cap
-		if len(stdout) > MaxBytesPerHost {
-			stdout = stdout[:MaxBytesPerHost] + "\n[truncated]"
+		// Capture is already bounded; report any discarded output to the caller.
+		if r.StdoutTruncated {
+			stdout += "\n[truncated]"
 		}
-		if len(stderr) > MaxBytesPerHost {
-			stderr = stderr[:MaxBytesPerHost] + "\n[truncated]"
+		if r.StderrTruncated {
+			stderr += "\n[truncated]"
 		}
 
 		hr := hostResult{
@@ -391,7 +392,7 @@ func (cl *configLoader) handleConfigResource(_ context.Context, req *mcp.ReadRes
 	type configSummary struct {
 		Version         int      `json:"version"`
 		ConnectionCount int      `json:"connection_count"`
-		GroupCount       int      `json:"group_count"`
+		GroupCount      int      `json:"group_count"`
 		Projects        []string `json:"projects"`
 		Environments    []string `json:"environments"`
 	}
@@ -399,7 +400,7 @@ func (cl *configLoader) handleConfigResource(_ context.Context, req *mcp.ReadRes
 	data, _ := json.MarshalIndent(configSummary{
 		Version:         cfg.Version,
 		ConnectionCount: len(cfg.Connections),
-		GroupCount:       len(cfg.Groups),
+		GroupCount:      len(cfg.Groups),
 		Projects:        projectList,
 		Environments:    envList,
 	}, "", "  ")

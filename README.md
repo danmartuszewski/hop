@@ -61,7 +61,7 @@ stop and report on the first failure.
 1. Pick ONE install method, in this priority:
    a. Homebrew (macOS or Linux):
         brew install danmartuszewski/tap/hop
-   b. Go 1.22+ available:
+   b. Go 1.24+ available:
         go install github.com/danmartuszewski/hop/cmd/hop@latest
    c. From source (no brew, no Go on PATH):
         git clone https://github.com/danmartuszewski/hop.git && cd hop && make install
@@ -567,7 +567,7 @@ claude mcp add hop -- hop mcp --allow-exec
 codex mcp add hop -- hop mcp --allow-exec
 ```
 
-This adds the `exec_command` tool, which runs shell commands on matched servers with output limits (64KB/host, 50 hosts max).
+This adds the `exec_command` tool, which runs shell commands on matched servers with output limits (64 KiB each for stdout and stderr per host, 50 hosts max). Output is capped during capture; excess output is discarded and marked as truncated in the response.
 
 ### Resources
 
@@ -617,6 +617,7 @@ hop completion fish > ~/.config/fish/completions/hop.fish
 ```bash
 make build          # Build binary to ./bin/hop
 make test           # Run tests
+make test-race      # Run tests with race detection (also used in CI)
 make test-docker    # Run tests in Docker (isolated)
 make install        # Install to $GOPATH/bin
 make docker         # Build Docker image

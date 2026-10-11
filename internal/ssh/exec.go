@@ -27,16 +27,21 @@ type ExecOptions struct {
 	Stream bool
 	// DryRun prints commands without executing if true.
 	DryRun bool
+	// MaxOutputBytes caps each captured output stream per host (0 means unlimited).
+	// Excess output is drained and discarded so the remote process can finish.
+	MaxOutputBytes int
 }
 
 // ExecResult holds the result of executing a command on a single host.
 type ExecResult struct {
-	Connection *config.Connection
-	Stdout     string
-	Stderr     string
-	ExitCode   int
-	Error      error
-	Duration   time.Duration
+	Connection      *config.Connection
+	Stdout          string
+	Stderr          string
+	ExitCode        int
+	Error           error
+	Duration        time.Duration
+	StdoutTruncated bool
+	StderrTruncated bool
 }
 
 // Execute runs a command on multiple connections in parallel.
@@ -191,12 +196,13 @@ func executeOnHost(ctx context.Context, conn *config.Connection, opts *ExecOptio
 
 	cmd := exec.CommandContext(execCtx, "ssh", args...)
 
-	var stdout, stderr bytes.Buffer
+	stdout := captureBuffer{limit: opts.MaxOutputBytes}
+	stderr := captureBuffer{limit: opts.MaxOutputBytes}
 
 	if opts.Stream {
 		// In stream mode, we write to stdout/stderr with prefixes
-		cmd.Stdout = &prefixWriter{prefix: fmt.Sprintf("[%s] ", conn.ID), writer: os.Stdout}
-		cmd.Stderr = &prefixWriter{prefix: fmt.Sprintf("[%s] ", conn.ID), writer: os.Stderr}
+		cmd.Stdout = newPrefixWriter(fmt.Sprintf("[%s] ", conn.ID), os.Stdout)
+		cmd.Stderr = newPrefixWriter(fmt.Sprintf("[%s] ", conn.ID), os.Stderr)
 	} else {
 		cmd.Stdout = &stdout
 		cmd.Stderr = &stderr
@@ -208,6 +214,8 @@ func executeOnHost(ctx context.Context, conn *config.Connection, opts *ExecOptio
 	if !opts.Stream {
 		result.Stdout = stdout.String()
 		result.Stderr = stderr.String()
+		result.StdoutTruncated = stdout.truncated
+		result.StderrTruncated = stderr.truncated
 	}
 
 	if err != nil {
@@ -220,6 +228,27 @@ func executeOnHost(ctx context.Context, conn *config.Connection, opts *ExecOptio
 	}
 
 	return result
+}
+
+// captureBuffer retains a bounded prefix while accepting the entire stream.
+type captureBuffer struct {
+	buf       bytes.Buffer
+	limit     int
+	truncated bool
+}
+
+func (b *captureBuffer) Write(p []byte) (int, error) {
+	n := len(p)
+	if b.limit > 0 && len(p) > b.limit-b.buf.Len() {
+		p = p[:b.limit-b.buf.Len()]
+		b.truncated = true
+	}
+	_, _ = b.buf.Write(p)
+	return n, nil
+}
+
+func (b *captureBuffer) String() string {
+	return b.buf.String()
 }
 
 // prefixWriter adds a prefix to each line written.

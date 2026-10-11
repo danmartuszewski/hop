@@ -85,7 +85,10 @@ type Model struct {
 	healthEnabled bool
 }
 
-func NewModel(cfg *config.Config, version string) Model {
+func NewModel(cfg *config.Config, version, configPath string) Model {
+	if configPath == "" {
+		configPath = config.DefaultConfigPath()
+	}
 	ti := textinput.New()
 	ti.Placeholder = "Type to filter..."
 	ti.CharLimit = 50
@@ -114,7 +117,7 @@ func NewModel(cfg *config.Config, version string) Model {
 
 	m := Model{
 		config:        cfg,
-		configPath:    config.DefaultConfigPath(),
+		configPath:    configPath,
 		version:       version,
 		filter:        ti,
 		pasteInput:    paste,
@@ -727,19 +730,18 @@ func (m Model) updateForm(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 
+		// Keep both add and edit forms open on an ID collision, preserving input.
+		if (!m.form.IsEditing() || conn.ID != m.form.OriginalID()) && m.config.FindConnection(conn.ID) != nil {
+			m.form.errMsg = fmt.Sprintf("Connection %q already exists — choose a different ID", conn.ID)
+			m.form.submitted = false
+			return m, nil
+		}
+
 		if m.form.IsEditing() {
 			// Update existing
 			m.config.UpdateConnection(m.form.OriginalID(), *conn)
 			m.statusMsg = fmt.Sprintf("Updated: %s", conn.ID)
 		} else {
-			// Check for duplicate ID. Keep the form open with the entered
-			// values intact so the user can fix the ID instead of losing
-			// everything they typed.
-			if m.config.FindConnection(conn.ID) != nil {
-				m.form.errMsg = fmt.Sprintf("Connection %q already exists — choose a different ID", conn.ID)
-				m.form.submitted = false
-				return m, nil
-			}
 			m.config.AddConnection(*conn)
 			m.statusMsg = fmt.Sprintf("Added: %s", conn.ID)
 		}
@@ -1361,8 +1363,8 @@ func sortedMapKeys[V any](m map[string]V) []string {
 	return keys
 }
 
-func Run(cfg *config.Config, version string) error {
-	m := NewModel(cfg, version)
+func Run(cfg *config.Config, version, configPath string) error {
+	m := NewModel(cfg, version, configPath)
 	p := tea.NewProgram(m, tea.WithAltScreen(), tea.WithMouseCellMotion())
 
 	_, err := p.Run()
