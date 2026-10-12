@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.9.2](https://github.com/danmartuszewski/hop/compare/v1.9.1...v1.9.2) (2026-10-12)
+
+
+### Bug Fixes
+
+* Corrected config persistence and bounded execution output ([3514045](https://github.com/danmartuszewski/hop/commit/3514045d3c0c4494ff6492fff8d8f9730534ccfa))
+* Corrected SSH config directive separators ([c3dadec](https://github.com/danmartuszewski/hop/commit/c3dadec0ed52cdee0e3a3d3e5dac162da558100c))
+* Made config and history saves atomic ([f49e945](https://github.com/danmartuszewski/hop/commit/f49e9458fbf51e85a61a148d547f9db98a59f0d6))
+
 ## [1.9.1](https://github.com/danmartuszewski/hop/compare/v1.9.0...v1.9.1) (2026-06-22)
 
 
